@@ -273,6 +273,91 @@ async def get_user_registrations(
         )
 
 
+@router.delete(
+    "/{registration_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        404: {"model": ErrorResponse, "description": "Registration not found"},
+        403: {"model": ErrorResponse, "description": "Not authorized to cancel this registration"},
+        400: {"model": ErrorResponse, "description": "Registration already cancelled"}
+    }
+)
+async def cancel_registration(
+    registration_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel a registration.
+
+    **Authentication Required:** Yes (must be logged in)
+
+    **Path Parameters:**
+    - `registration_id`: The ID of the registration to cancel
+
+    **Success Response (200):**
+    ```json
+    {
+        "success": true,
+        "message": "Registration cancelled successfully",
+        "details": {
+            "registrationId": "registration-uuid",
+            "eventTitle": "AI & Machine Learning Workshop",
+            "cancelledAt": "2025-11-26T18:30:00Z",
+            "spotsFreed": 2
+        }
+    }
+    ```
+
+    **Error Responses:**
+    - 404: Registration not found
+    - 403: You can only cancel your own registrations
+    - 400: Registration is already cancelled
+
+    **Business Rules:**
+    - Can only cancel own registration
+    - Marks registration as cancelled (doesn't delete)
+    - Decreases event's registeredCount by (1 + number of guests)
+    - Sends cancellation confirmation email
+    - TODO: Auto-promotes first person from waitlist (after waitlist APIs implemented)
+    """
+    # Initialize registration service
+    registration_service = RegistrationService(db)
+
+    try:
+        # Cancel the registration (all business logic in service)
+        cancelled_registration = registration_service.cancel_registration(
+            registration_id=registration_id,
+            user_id=current_user.id
+        )
+
+        # Calculate spots freed
+        guests_count = len(cancelled_registration.guests) if cancelled_registration.guests else 0
+        spots_freed = 1 + guests_count
+
+        # Return success response
+        return {
+            "success": True,
+            "message": "Registration cancelled successfully",
+            "details": {
+                "registrationId": cancelled_registration.id,
+                "eventTitle": cancelled_registration.event.title if cancelled_registration.event else "Unknown",
+                "cancelledAt": cancelled_registration.cancelled_at.isoformat() if cancelled_registration.cancelled_at else None,
+                "spotsFreed": spots_freed
+            }
+        }
+
+    except HTTPException:
+        # Re-raise HTTP exceptions from service
+        raise
+    except Exception as e:
+        # Catch any unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cancel registration: {str(e)}"
+        )
+
+
 # Health check endpoint for registration API
 @router.get("/health")
 async def health_check():

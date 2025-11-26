@@ -283,3 +283,132 @@ class RegistrationService:
         )
 
         return registrations
+
+    def cancel_registration(
+        self,
+        registration_id: str,
+        user_id: str
+    ) -> Registration:
+        """
+        Cancel a registration.
+
+        BUSINESS LOGIC:
+        1. Validate registration exists
+        2. Check user owns the registration
+        3. Check if already cancelled
+        4. Mark registration as cancelled
+        5. Decrease event registered_count (user + guests)
+        6. Send cancellation email
+        7. Create audit log
+        8. TODO: Auto-promote from waitlist (Phase 3 - after waitlist APIs)
+
+        Args:
+            registration_id: ID of registration to cancel
+            user_id: ID of user requesting cancellation
+
+        Returns:
+            Registration: The cancelled registration
+
+        Raises:
+            HTTPException 404: Registration not found
+            HTTPException 403: User doesn't own this registration
+            HTTPException 400: Registration already cancelled
+        """
+        # ====================================================================
+        # STEP 1: GET AND VALIDATE REGISTRATION
+        # ====================================================================
+        registration = self.registration_repo.get_by_id(registration_id, include_relations=True)
+
+        if not registration:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Registration not found"
+            )
+
+        # ====================================================================
+        # STEP 2: CHECK OWNERSHIP
+        # ====================================================================
+        if registration.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only cancel your own registrations"
+            )
+
+        # ====================================================================
+        # STEP 3: CHECK IF ALREADY CANCELLED
+        # ====================================================================
+        if registration.status == RegistrationStatus.CANCELLED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Registration is already cancelled"
+            )
+
+        # ====================================================================
+        # STEP 4: CALCULATE CAPACITY TO FREE
+        # ====================================================================
+        # Count user + guests
+        guests_count = len(registration.guests) if registration.guests else 0
+        total_attendees = 1 + guests_count  # User + guests
+
+        # ====================================================================
+        # STEP 5: MARK AS CANCELLED
+        # ====================================================================
+        cancelled_registration = self.registration_repo.cancel(registration)
+
+        # ====================================================================
+        # STEP 6: UPDATE EVENT REGISTERED COUNT
+        # ====================================================================
+        event = self.event_repo.get_by_id(registration.event_id)
+        if event:
+            event.registered_count -= total_attendees
+            # Ensure it doesn't go negative
+            if event.registered_count < 0:
+                event.registered_count = 0
+            self.event_repo.update(event)
+
+        # ====================================================================
+        # STEP 7: SEND CANCELLATION EMAIL
+        # ====================================================================
+        user = self.user_repo.get_by_id(user_id)
+        try:
+            self.email_service.send_cancellation_confirmation(
+                user=user,
+                event=event,
+                registration=cancelled_registration
+            )
+        except Exception as e:
+            # Log email error but don't fail the cancellation
+            print(f"Warning: Failed to send cancellation email: {str(e)}")
+
+        # ====================================================================
+        # STEP 8: CREATE AUDIT LOG
+        # ====================================================================
+        self.audit_repo.create(
+            action=AuditAction.REGISTRATION_CANCELLED,
+            actor_id=user_id,
+            actor_name=user.name,
+            actor_role=user.role.value,
+            target_type=TargetType.REGISTRATION,
+            target_id=registration.id,
+            target_name=event.title if event else "Unknown Event",
+            details=f"User {user.name} cancelled registration for {event.title if event else 'event'}. Freed {total_attendees} spot(s).",
+            ip_address=None,
+            user_agent=None
+        )
+
+        # ====================================================================
+        # STEP 9: TODO - AUTO-PROMOTE FROM WAITLIST
+        # ====================================================================
+        # TODO: After implementing waitlist APIs, add logic to:
+        # 1. Check if event has waitlist entries
+        # 2. Get first person from waitlist (lowest position)
+        # 3. Create registration for them
+        # 4. Remove from waitlist
+        # 5. Update waitlist positions
+        # 6. Send promotion notification email
+
+        # Commit all changes
+        self.db.commit()
+        self.db.refresh(cancelled_registration)
+
+        return cancelled_registration
