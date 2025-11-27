@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/registrations", tags=["Registrations"])
 @router.post(
     "",
     response_model=RegistrationCreateResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     responses={
         404: {"model": ErrorResponse, "description": "Event not found"},
         409: {"model": ErrorResponse, "description": "Already registered or event full"},
@@ -66,7 +66,7 @@ async def register_for_event(
     }
     ```
 
-    **Success Response (201):**
+    **Success Response (200):**
     ```json
     {
         "success": true,
@@ -175,9 +175,7 @@ async def get_user_registrations(
                     "startTime": "14:00",
                     "venue": "Engineering Building",
                     "organizer": {
-                        "id": "organizer-uuid",
-                        "name": "Tech Club",
-                        "email": "techclub@umd.edu"
+                        "name": "Tech Club"
                     }
                 },
                 "status": "confirmed",
@@ -237,9 +235,7 @@ async def get_user_registrations(
                     startTime=reg.event.start_time.strftime('%H:%M') if reg.event.start_time else "",
                     venue=reg.event.venue,
                     organizer={
-                        "id": reg.event.organizer.id if reg.event.organizer else "",
-                        "name": reg.event.organizer.name if reg.event.organizer else "",
-                        "email": reg.event.organizer.email if reg.event.organizer else ""
+                        "name": reg.event.organizer.name if reg.event.organizer else ""
                     }
                 )
 
@@ -299,13 +295,7 @@ async def cancel_registration(
     ```json
     {
         "success": true,
-        "message": "Registration cancelled successfully",
-        "details": {
-            "registrationId": "registration-uuid",
-            "eventTitle": "AI & Machine Learning Workshop",
-            "cancelledAt": "2025-11-26T18:30:00Z",
-            "spotsFreed": 2
-        }
+        "message": "Registration cancelled successfully"
     }
     ```
 
@@ -331,20 +321,10 @@ async def cancel_registration(
             user_id=current_user.id
         )
 
-        # Calculate spots freed
-        guests_count = len(cancelled_registration.guests) if cancelled_registration.guests else 0
-        spots_freed = 1 + guests_count
-
         # Return success response
         return {
             "success": True,
-            "message": "Registration cancelled successfully",
-            "details": {
-                "registrationId": cancelled_registration.id,
-                "eventTitle": cancelled_registration.event.title if cancelled_registration.event else "Unknown",
-                "cancelledAt": cancelled_registration.cancelled_at.isoformat() if cancelled_registration.cancelled_at else None,
-                "spotsFreed": spots_freed
-            }
+            "message": "Registration cancelled successfully"
         }
 
     except HTTPException:
