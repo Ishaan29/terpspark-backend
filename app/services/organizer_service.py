@@ -10,6 +10,9 @@ from datetime import date, datetime
 import uuid
 import csv
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.models.event import Event, EventStatus
 from app.models.user import User, UserRole
@@ -21,7 +24,9 @@ from app.repositories.registration_repository import RegistrationRepository
 from app.repositories.waitlist_repository import WaitlistRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.event import EventCreate, EventUpdate
+from app.utils.email_service import EmailService
 
 
 class OrganizerService:
@@ -30,7 +35,7 @@ class OrganizerService:
     def __init__(self, db: Session):
         """
         Initialize service with database session.
-        
+
         Args:
             db: SQLAlchemy database session
         """
@@ -40,6 +45,8 @@ class OrganizerService:
         self.waitlist_repo = WaitlistRepository(db)
         self.category_repo = CategoryRepository(db)
         self.audit_repo = AuditLogRepository(db)
+        self.user_repo = UserRepository(db)
+        self.email_service = EmailService(db)
     
     def _verify_organizer(self, user: User) -> None:
         """
@@ -374,9 +381,33 @@ class OrganizerService:
             ip_address=ip_address,
             user_agent=user_agent
         )
-        
-        # TODO: Send cancellation notifications to registered users
-        
+
+        # Send cancellation notifications to all registered attendees
+        try:
+            # Get all confirmed registrations for this event
+            registrations = self.registration_repo.get_event_registrations(
+                event_id=event.id,
+                status=RegistrationStatus.CONFIRMED
+            )
+
+            # Send email to each attendee
+            for registration in registrations:
+                user = self.user_repo.get_by_id(registration.user_id)
+                if user:
+                    try:
+                        self.email_service.send_event_cancellation_to_attendees(
+                            attendee=user,
+                            event=event
+                        )
+                    except Exception as email_error:
+                        # Log but don't fail the cancellation
+                        logger.warning(f"Failed to send cancellation email to {user.email}: {str(email_error)}")
+
+            logger.info(f"Sent cancellation notifications to {len(registrations)} attendees for event {event.id}")
+        except Exception as e:
+            # Log error but don't fail the cancellation
+            logger.error(f"Error sending cancellation notifications: {str(e)}")
+
         return event
     
     def duplicate_event(
@@ -755,18 +786,52 @@ class OrganizerService:
             status=RegistrationStatus.CONFIRMED
         )
         
+        # Check rate limiting: Max 10 announcements per day per organizer
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        # Reuse EVENT_UPDATED as a proxy action for announcements (ANNOUNCEMENT_SENT not in DB enum)
+        today_announcements = self.audit_repo.count_by_action_and_actor(
+            action=AuditAction.EVENT_UPDATED,
+            actor_id=organizer.id,
+            since=today_start
+        )
+
+        if today_announcements >= 10:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Daily announcement limit reached (10 per day). Please try again tomorrow."
+            )
+
         # Count recipients (including guests with emails)
         recipient_count = len(registrations)
         for reg in registrations:
             if reg.guests:
                 recipient_count += len([g for g in reg.guests if g.get("email")])
-        
-        # TODO: Actually send emails via email service
-        # For now, we just log and return count
-        
-        # Log audit
+
+        # Send emails to all registered attendees
+        sent_count = 0
+        failed_count = 0
+
+        for registration in registrations:
+            user = self.user_repo.get_by_id(registration.user_id)
+            if user:
+                try:
+                    self.email_service.send_announcement(
+                        attendee=user,
+                        event=event,
+                        subject_text=subject,
+                        message=message,
+                        registration=registration
+                    )
+                    sent_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to send announcement to {user.email}: {str(e)}")
+                    failed_count += 1
+
+        logger.info(f"Sent announcement to {sent_count}/{recipient_count} attendees for event {event.id}")
+
+        # Log audit using EVENT_UPDATED as proxy for announcement
         self.audit_repo.create(
-            action=AuditAction.EVENT_UPDATED,  # Using EVENT_UPDATED for announcements
+            action=AuditAction.EVENT_UPDATED,
             actor_id=organizer.id,
             actor_name=organizer.name,
             actor_role=organizer.role.value,
@@ -776,16 +841,18 @@ class OrganizerService:
             details=f"Announcement sent for '{event.title}': {subject}",
             metadata={
                 "subject": subject,
-                "recipient_count": recipient_count
+                "recipient_count": recipient_count,
+                "type": "announcement"
             },
             ip_address=ip_address,
             user_agent=user_agent
         )
-        
+
         return {
             "success": True,
-            "message": f"Announcement queued for {recipient_count} recipients",
-            "recipientCount": recipient_count
+            "message": f"Announcement sent to {sent_count} of {recipient_count} recipients",
+            "recipientCount": sent_count,
+            "failedCount": failed_count
         }
     
     def get_event_waitlist(

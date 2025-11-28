@@ -80,7 +80,7 @@ class Event(Base):
     )
     published_at = Column(DateTime(timezone=True), nullable=True)
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # Relationships
     category = relationship("Category", back_populates="events")
     organizer = relationship("User", foreign_keys=[organizer_id], backref="organized_events")

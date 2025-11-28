@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Review Update - TerpSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #E21833 0%, #C41230 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .info-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .event-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .event-details h3 {
+            margin-top: 0;
+            color: #E21833;
+        }
+        .feedback-box {
+            background-color: #ffe5e5;
+            border-left: 4px solid #E21833;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .feedback-box h3 {
+            margin-top: 0;
+            color: #E21833;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #E21833;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background-color: #C41230;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Event Review Update</h1>
+        </div>
+
+        <div class="info-box">
+            <strong>ℹ️ Status Update:</strong> Your event submission has been reviewed.
+        </div>
+
+        <p>Hi <strong>{{organizer_name}}</strong>,</p>
+
+        <p>Thank you for submitting your event to TerpSpark. After careful review, we are unable to approve the following event at this time:</p>
+
+        <div class="event-details">
+            <h3>{{event_title}}</h3>
+            <p><strong>Submitted:</strong> {{submitted_date}}</p>
+        </div>
+
+        <div class="feedback-box">
+            <h3>Reason for Rejection:</h3>
+            <p>{{notes}}</p>
+        </div>
+
+        <p><strong>What this means:</strong></p>
+        <ul>
+            <li>Your event is currently in "Rejected" status</li>
+            <li>It is not visible to students on the platform</li>
+            <li>You can edit and resubmit the event</li>
+        </ul>
+
+        <p><strong>Next Steps:</strong></p>
+        <ul>
+            <li>Review the feedback provided above carefully</li>
+            <li>Make necessary changes to address the concerns</li>
+            <li>Edit your event in the Organizer Dashboard</li>
+            <li>Resubmit for approval when ready</li>
+        </ul>
+
+        <center>
+            <a href="https://terpspark.umd.edu/organizer/events/{{event_id}}" class="button">Edit Event</a>
+        </center>
+
+        <p style="margin-top: 30px;">If you have questions about this decision or need clarification, please don't hesitate to contact our admin team.</p>
+
+        <div class="footer">
+            <p><strong>TerpSpark</strong> - University of Maryland Event Management</p>
+            <p>For questions, contact <a href="mailto:admin@terpspark.umd.edu">admin@terpspark.umd.edu</a></p>
+        </div>
+    </div>
+</body>
+</html>

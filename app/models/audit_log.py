@@ -49,6 +49,9 @@ class AuditAction(str, enum.Enum):
     # Check-in
     ATTENDEE_CHECKED_IN = "ATTENDEE_CHECKED_IN"
 
+    # Communication
+    ANNOUNCEMENT_SENT = "ANNOUNCEMENT_SENT"
+
 
 class TargetType(str, enum.Enum):
     """Enum for target types."""

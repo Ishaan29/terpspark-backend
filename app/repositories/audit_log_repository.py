@@ -207,3 +207,31 @@ class AuditLogRepository:
             AuditLog.timestamp.desc()
         ).limit(limit).all()
 
+
+
+    def count_by_action_and_actor(
+        self,
+        action: AuditAction,
+        actor_id: str,
+        since: datetime = None
+    ) -> int:
+        """
+        Count audit logs by action and actor since a given time.
+
+        Args:
+            action: The audit action to count
+            actor_id: The actor ID
+            since: Optional datetime to count from (default: all time)
+
+        Returns:
+            int: Count of matching audit logs
+        """
+        query = self.db.query(AuditLog).filter(
+            AuditLog.action == action,
+            AuditLog.actor_id == actor_id
+        )
+
+        if since:
+            query = query.filter(AuditLog.timestamp >= since)
+
+        return query.count()

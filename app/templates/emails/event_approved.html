@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Approved - TerpSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20893a 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+        .event-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .event-details h3 {
+            margin-top: 0;
+            color: #E21833;
+        }
+        .detail-row {
+            margin: 10px 0;
+            display: flex;
+        }
+        .detail-label {
+            font-weight: 600;
+            width: 120px;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background-color: #20893a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Event Published!</h1>
+        </div>
+
+        <div class="success-box">
+            <strong>✅ Approved:</strong> Your event has been approved and is now live!
+        </div>
+
+        <p>Hi <strong>{{organizer_name}}</strong>,</p>
+
+        <p>Excellent news! Your event has been reviewed and approved by our admin team. It is now published and visible to all students on TerpSpark.</p>
+
+        <div class="event-details">
+            <h3>{{event_title}}</h3>
+            <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span class="detail-value">{{event_date}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Time:</span>
+                <span class="detail-value">{{event_time}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Venue:</span>
+                <span class="detail-value">{{event_venue}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Capacity:</span>
+                <span class="detail-value">{{event_capacity}}</span>
+            </div>
+        </div>
+
+        {{#if notes}}
+        <div style="background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <strong>Admin Notes:</strong>
+            <p style="margin: 10px 0 0 0;">{{notes}}</p>
+        </div>
+        {{/if}}
+
+        <p><strong>What's Next:</strong></p>
+        <ul>
+            <li>Students can now discover and register for your event</li>
+            <li>Monitor registrations in your Organizer Dashboard</li>
+            <li>Send announcements to keep attendees informed</li>
+            <li>Check in attendees on the day of the event</li>
+        </ul>
+
+        <center>
+            <a href="https://terpspark.umd.edu/organizer/events/{{event_id}}" class="button">View Event Dashboard</a>
+        </center>
+
+        <p style="margin-top: 30px;">Good luck with your event! We're excited to see it succeed.</p>
+
+        <div class="footer">
+            <p><strong>TerpSpark</strong> - University of Maryland Event Management</p>
+            <p>For support, contact <a href="mailto:support@terpspark.umd.edu">support@terpspark.umd.edu</a></p>
+        </div>
+    </div>
+</body>
+</html>

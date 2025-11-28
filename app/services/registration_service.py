@@ -77,9 +77,13 @@ class RegistrationService:
             HTTPException 422: Validation errors (guest emails, etc.)
         """
         # ====================================================================
-        # STEP 1: GET AND VALIDATE EVENT
+        # STEP 1: GET AND VALIDATE EVENT (WITH ROW LOCK)
         # ====================================================================
-        event = self.event_repo.get_by_id(registration_data.eventId)
+        # Use row-level locking to prevent race conditions on capacity
+        event = self.db.query(Event).filter(
+            Event.id == registration_data.eventId
+        ).with_for_update().first()
+
         if not event:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -125,10 +129,11 @@ class RegistrationService:
 
         # Validate guest emails
         for guest in guests:
-            if not guest.email.lower().endswith('@umd.edu'):
+            guest_email_lower = guest.email.lower()
+            if not (guest_email_lower.endswith('@umd.edu') or guest_email_lower.endswith('@terpmail.umd.edu')):
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Guest email {guest.email} must be a valid UMD email (@umd.edu)"
+                    detail=f"Guest email {guest.email} must be a valid UMD email (@umd.edu or @terpmail.umd.edu)"
                 )
 
         # Check for duplicate guest emails within this registration
@@ -139,14 +144,35 @@ class RegistrationService:
                 detail="Duplicate guest emails are not allowed"
             )
 
-        # Check if any guest is already registered (as main attendee)
+        # Check if any guest is already registered (as main attendee or another guest)
         for guest in guests:
-            guest_registration = self.registration_repo.get_by_user_and_event(
-                user_id=guest.email,  # Simplified check
-                event_id=registration_data.eventId
+            # First, check if guest email belongs to a registered user
+            guest_user = self.user_repo.get_by_email(guest.email)
+            if guest_user:
+                # Check if this user is already registered for this event
+                guest_registration = self.registration_repo.get_by_user_and_event(
+                    user_id=guest_user.id,
+                    event_id=registration_data.eventId
+                )
+                if guest_registration and guest_registration.status == RegistrationStatus.CONFIRMED:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Guest {guest.email} is already registered for this event as a primary attendee"
+                    )
+
+            # Also check if this guest email appears in other registrations' guest lists
+            all_event_registrations = self.registration_repo.get_event_registrations(
+                event_id=registration_data.eventId,
+                status=RegistrationStatus.CONFIRMED
             )
-            # Note: More robust check would query by email across all users
-            # For now, this is a simplified version
+            for reg in all_event_registrations:
+                if reg.guests:
+                    guest_emails_in_reg = [g.get('email', '').lower() for g in reg.guests]
+                    if guest.email.lower() in guest_emails_in_reg:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Guest {guest.email} is already registered for this event as a guest of another attendee"
+                        )
 
         # ====================================================================
         # STEP 4: CHECK CAPACITY
@@ -698,6 +724,24 @@ class RegistrationService:
 
         if not event or not user:
             return False
+
+        # ====================================================================
+        # STEP 2.5: CHECK IF USER ALREADY REGISTERED (DUPLICATE CHECK)
+        # ====================================================================
+        # User might have registered through another means (capacity increase, cancellation, etc.)
+        existing_registration = self.registration_repo.get_by_user_and_event(
+            user_id=user.id,
+            event_id=event_id
+        )
+        if existing_registration and existing_registration.status == RegistrationStatus.CONFIRMED:
+            # User already registered, remove from waitlist and skip promotion
+            self.waitlist_repo.remove(waitlist_entry)
+            event.waitlist_count -= 1
+            if event.waitlist_count < 0:
+                event.waitlist_count = 0
+            self.event_repo.update(event)
+            self.db.commit()
+            return False  # Skip this person, they're already registered
 
         # ====================================================================
         # STEP 3: GENERATE TICKET CODE AND QR CODE

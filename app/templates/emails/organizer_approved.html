@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Approved - TerpSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20893a 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #E21833;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background-color: #20893a;
+        }
+        ul {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Organizer Request Approved!</h1>
+        </div>
+
+        <div class="success-box">
+            <strong>🎉 Congratulations!</strong> Your organizer request has been approved.
+        </div>
+
+        <p>Hi <strong>{{user_name}}</strong>,</p>
+
+        <p>Great news! Your request to become an event organizer on TerpSpark has been approved by our admin team.</p>
+
+        <div class="info-box">
+            <h3>What You Can Do Now:</h3>
+            <ul>
+                <li><strong>Create Events:</strong> Start creating amazing events for the UMD community</li>
+                <li><strong>Manage Attendees:</strong> Track registrations and check-ins</li>
+                <li><strong>Send Announcements:</strong> Communicate with your event participants</li>
+                <li><strong>View Analytics:</strong> Get insights on your event performance</li>
+            </ul>
+        </div>
+
+        {{#if notes}}
+        <div class="info-box">
+            <h3>Admin Notes:</h3>
+            <p>{{notes}}</p>
+        </div>
+        {{/if}}
+
+        <p><strong>Getting Started:</strong></p>
+        <ul>
+            <li>Login to your TerpSpark account</li>
+            <li>Navigate to the Organizer Dashboard</li>
+            <li>Click "Create New Event" to get started</li>
+            <li>All new events require admin approval before publishing</li>
+        </ul>
+
+        <center>
+            <a href="https://terpspark.umd.edu/organizer/dashboard" class="button">Go to Organizer Dashboard</a>
+        </center>
+
+        <p style="margin-top: 30px;">If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>
+
+        <div class="footer">
+            <p><strong>TerpSpark</strong> - University of Maryland Event Management</p>
+            <p>This is an automated email. For support, contact <a href="mailto:support@terpspark.umd.edu">support@terpspark.umd.edu</a></p>
+        </div>
+    </div>
+</body>
+</html>

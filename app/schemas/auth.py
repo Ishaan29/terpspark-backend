@@ -16,9 +16,10 @@ class UserBase(BaseModel):
     @validator('email')
     def validate_umd_email(cls, v):
         """Ensure email is a UMD email address."""
-        if not v.lower().endswith('@umd.edu'):
-            raise ValueError('Email must be a valid UMD email address (@umd.edu)')
-        return v.lower()
+        email_lower = v.lower()
+        if not (email_lower.endswith('@umd.edu') or email_lower.endswith('@terpmail.umd.edu')):
+            raise ValueError('Email must be a valid UMD email address (@umd.edu or @terpmail.umd.edu)')
+        return email_lower
 
 
 class UserCreate(UserBase):

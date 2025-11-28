@@ -409,3 +409,332 @@ You can check your waitlist status anytime in your account.
         else:
             self._print_mock_email(user.email, subject, content)
             return True
+
+    def send_event_cancellation_to_attendees(
+        self,
+        attendee: User,
+        event: Event
+    ) -> bool:
+        """
+        Send event cancellation notification to a registered attendee.
+
+        Args:
+            attendee: The registered attendee
+            event: The cancelled event
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        event_date = event.date.strftime('%B %d, %Y') if event.date else 'TBD'
+        event_time_start = event.start_time.strftime('%I:%M %p') if event.start_time else 'TBD'
+        event_time_end = event.end_time.strftime('%I:%M %p') if event.end_time else 'TBD'
+        event_time = f"{event_time_start} - {event_time_end}"
+        organizer_name = event.organizer.name if event.organizer else 'Event Organizer'
+
+        subject = f"⚠️ Event Cancelled - {event.title}"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "event_cancelled.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{user_name}}', attendee.name)
+                html_content = html_content.replace('{{event_title}}', event.title)
+                html_content = html_content.replace('{{event_date}}', event_date)
+                html_content = html_content.replace('{{event_time}}', event_time)
+                html_content = html_content.replace('{{event_venue}}', event.venue)
+                html_content = html_content.replace('{{organizer_name}}', organizer_name)
+                return self._send_smtp_email(attendee.email, subject, html_content)
+
+        # Fallback/Mock mode
+        content = f"""
+Hi {attendee.name},
+
+⚠️ IMPORTANT: The event you registered for has been cancelled.
+
+EVENT: {event.title}
+Date: {event_date}
+Time: {event_time}
+Venue: {event.venue}
+
+Your registration has been automatically cancelled. No further action is required.
+
+We apologize for any inconvenience.
+
+- The TerpSpark Team
+        """
+        self._print_mock_email(attendee.email, subject, content)
+        return True
+
+    def send_organizer_approval(
+        self,
+        user: User,
+        notes: str = None
+    ) -> bool:
+        """
+        Send organizer approval notification.
+
+        Args:
+            user: The approved organizer
+            notes: Optional admin notes
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        subject = "✅ Organizer Request Approved - TerpSpark"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "organizer_approved.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{user_name}}', user.name)
+                # Handle conditional notes section
+                if notes:
+                    html_content = html_content.replace('{{#if notes}}', '')
+                    html_content = html_content.replace('{{/if}}', '')
+                    html_content = html_content.replace('{{notes}}', notes)
+                else:
+                    # Remove the notes section
+                    import re
+                    html_content = re.sub(r'{{#if notes}}.*?{{/if}}', '', html_content, flags=re.DOTALL)
+                return self._send_smtp_email(user.email, subject, html_content)
+
+        # Fallback/Mock mode
+        notes_text = f"\nAdmin Notes: {notes}\n" if notes else ""
+        content = f"""
+Hi {user.name},
+
+🎉 Congratulations! Your organizer request has been approved!
+
+You can now:
+- Create events
+- Manage attendees
+- Send announcements
+{notes_text}
+Get started: https://terpspark.umd.edu/organizer/dashboard
+
+- The TerpSpark Team
+        """
+        self._print_mock_email(user.email, subject, content)
+        return True
+
+    def send_organizer_rejection(
+        self,
+        user: User,
+        notes: str
+    ) -> bool:
+        """
+        Send organizer rejection notification.
+
+        Args:
+            user: The rejected user
+            notes: Rejection reason (required)
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        subject = "Organizer Request Update - TerpSpark"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "organizer_rejected.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{user_name}}', user.name)
+                html_content = html_content.replace('{{notes}}', notes)
+                return self._send_smtp_email(user.email, subject, html_content)
+
+        # Fallback/Mock mode
+        content = f"""
+Hi {user.name},
+
+Your organizer request has been reviewed.
+
+Feedback: {notes}
+
+You may reapply in the future after addressing these concerns.
+
+- The TerpSpark Team
+        """
+        self._print_mock_email(user.email, subject, content)
+        return True
+
+    def send_event_approval(
+        self,
+        organizer: User,
+        event: Event,
+        notes: str = None
+    ) -> bool:
+        """
+        Send event approval notification to organizer.
+
+        Args:
+            organizer: The event organizer
+            event: The approved event
+            notes: Optional admin notes
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        event_date = event.date.strftime('%B %d, %Y') if event.date else 'TBD'
+        event_time_start = event.start_time.strftime('%I:%M %p') if event.start_time else 'TBD'
+        event_time_end = event.end_time.strftime('%I:%M %p') if event.end_time else 'TBD'
+        event_time = f"{event_time_start} - {event_time_end}"
+
+        subject = f"✅ Event Approved - {event.title}"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "event_approved.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{organizer_name}}', organizer.name)
+                html_content = html_content.replace('{{event_title}}', event.title)
+                html_content = html_content.replace('{{event_date}}', event_date)
+                html_content = html_content.replace('{{event_time}}', event_time)
+                html_content = html_content.replace('{{event_venue}}', event.venue)
+                html_content = html_content.replace('{{event_capacity}}', str(event.capacity))
+                html_content = html_content.replace('{{event_id}}', event.id)
+                # Handle conditional notes
+                if notes:
+                    html_content = html_content.replace('{{#if notes}}', '')
+                    html_content = html_content.replace('{{/if}}', '')
+                    html_content = html_content.replace('{{notes}}', notes)
+                else:
+                    import re
+                    html_content = re.sub(r'{{#if notes}}.*?{{/if}}', '', html_content, flags=re.DOTALL)
+                return self._send_smtp_email(organizer.email, subject, html_content)
+
+        # Fallback/Mock mode
+        notes_text = f"\nAdmin Notes: {notes}\n" if notes else ""
+        content = f"""
+Hi {organizer.name},
+
+🎉 Your event has been approved and is now live!
+
+EVENT: {event.title}
+Date: {event_date}
+Time: {event_time}
+Venue: {event.venue}
+{notes_text}
+View dashboard: https://terpspark.umd.edu/organizer/events/{event.id}
+
+- The TerpSpark Team
+        """
+        self._print_mock_email(organizer.email, subject, content)
+        return True
+
+    def send_event_rejection(
+        self,
+        organizer: User,
+        event: Event,
+        notes: str
+    ) -> bool:
+        """
+        Send event rejection notification to organizer.
+
+        Args:
+            organizer: The event organizer
+            event: The rejected event
+            notes: Rejection reason (required)
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        submitted_date = event.created_at.strftime('%B %d, %Y') if event.created_at else 'Recently'
+
+        subject = f"Event Review Update - {event.title}"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "event_rejected.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{organizer_name}}', organizer.name)
+                html_content = html_content.replace('{{event_title}}', event.title)
+                html_content = html_content.replace('{{submitted_date}}', submitted_date)
+                html_content = html_content.replace('{{notes}}', notes)
+                html_content = html_content.replace('{{event_id}}', event.id)
+                return self._send_smtp_email(organizer.email, subject, html_content)
+
+        # Fallback/Mock mode
+        content = f"""
+Hi {organizer.name},
+
+Your event submission has been reviewed.
+
+EVENT: {event.title}
+Submitted: {submitted_date}
+
+Feedback: {notes}
+
+You can edit and resubmit your event.
+Edit event: https://terpspark.umd.edu/organizer/events/{event.id}
+
+- The TerpSpark Team
+        """
+        self._print_mock_email(organizer.email, subject, content)
+        return True
+
+    def send_announcement(
+        self,
+        attendee: User,
+        event: Event,
+        subject_text: str,
+        message: str,
+        registration: Registration = None
+    ) -> bool:
+        """
+        Send announcement to event attendee.
+
+        Args:
+            attendee: The attendee
+            event: The event
+            subject_text: Announcement subject
+            message: Announcement message
+            registration: Optional registration for ticket details
+
+        Returns:
+            bool: True if email sent successfully
+        """
+        event_date = event.date.strftime('%B %d, %Y') if event.date else 'TBD'
+        event_time_start = event.start_time.strftime('%I:%M %p') if event.start_time else 'TBD'
+        event_time_end = event.end_time.strftime('%I:%M %p') if event.end_time else 'TBD'
+        event_time = f"{event_time_start} - {event_time_end}"
+        organizer_name = event.organizer.name if event.organizer else 'Event Organizer'
+
+        subject = f"📢 {subject_text} - {event.title}"
+
+        if self.mode == "smtp":
+            template_path = self.templates_dir / "announcement.html"
+            if template_path.exists():
+                html_content = template_path.read_text()
+                html_content = html_content.replace('{{attendee_name}}', attendee.name)
+                html_content = html_content.replace('{{event_title}}', event.title)
+                html_content = html_content.replace('{{event_date}}', event_date)
+                html_content = html_content.replace('{{event_time}}', event_time)
+                html_content = html_content.replace('{{event_venue}}', event.venue)
+                html_content = html_content.replace('{{organizer_name}}', organizer_name)
+                html_content = html_content.replace('{{subject}}', subject_text)
+                html_content = html_content.replace('{{message}}', message)
+                if registration:
+                    html_content = html_content.replace('{{ticket_code}}', registration.ticket_code)
+                    html_content = html_content.replace('{{registration_id}}', registration.id)
+                else:
+                    html_content = html_content.replace('{{ticket_code}}', 'N/A')
+                    html_content = html_content.replace('{{registration_id}}', '')
+                return self._send_smtp_email(attendee.email, subject, html_content)
+
+        # Fallback/Mock mode
+        content = f"""
+Hi {attendee.name},
+
+📢 ANNOUNCEMENT from {organizer_name}
+
+EVENT: {event.title}
+Date: {event_date}
+
+{subject_text}
+
+{message}
+
+- TerpSpark Announcement System
+        """
+        self._print_mock_email(attendee.email, subject, content)
+        return True

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Announcement - TerpSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #FFD100 0%, #E6BC00 100%);
+            color: #333;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .event-banner {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #E21833;
+        }
+        .event-banner h2 {
+            margin: 0 0 10px 0;
+            color: #E21833;
+        }
+        .detail-row {
+            margin: 10px 0;
+            display: flex;
+        }
+        .detail-label {
+            font-weight: 600;
+            width: 100px;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .message-box {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #E21833;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background-color: #C41230;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📢 Event Announcement</h1>
+        </div>
+
+        <p>Hi <strong>{{attendee_name}}</strong>,</p>
+
+        <p>The organizer of an event you're registered for has sent an important announcement:</p>
+
+        <div class="event-banner">
+            <h2>{{event_title}}</h2>
+            <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span class="detail-value">{{event_date}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Time:</span>
+                <span class="detail-value">{{event_time}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Venue:</span>
+                <span class="detail-value">{{event_venue}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">From:</span>
+                <span class="detail-value">{{organizer_name}}</span>
+            </div>
+        </div>
+
+        <div class="message-box">
+            <h3 style="margin-top: 0; color: #333;">{{subject}}</h3>
+            <div style="white-space: pre-wrap;">{{message}}</div>
+        </div>
+
+        <p><strong>Your Registration Details:</strong></p>
+        <ul>
+            <li>Ticket Code: <strong>{{ticket_code}}</strong></li>
+            <li>Status: <strong>Confirmed</strong></li>
+            <li>Check-in: Show your QR code at the venue</li>
+        </ul>
+
+        <center>
+            <a href="https://terpspark.umd.edu/registrations/{{registration_id}}" class="button">View My Ticket</a>
+        </center>
+
+        <div class="footer">
+            <p><strong>TerpSpark</strong> - University of Maryland Event Management</p>
+            <p>You received this because you're registered for this event.</p>
+            <p style="font-size: 12px; margin-top: 10px;">To manage your registrations, visit your <a href="https://terpspark.umd.edu/profile">profile</a>.</p>
+        </div>
+    </div>
+</body>
+</html>

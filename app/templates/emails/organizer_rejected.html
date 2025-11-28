@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Request Update - TerpSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #E21833 0%, #C41230 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .info-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .feedback-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #E21833;
+        }
+        .feedback-box h3 {
+            margin-top: 0;
+            color: #E21833;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #E21833;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background-color: #C41230;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Organizer Request Update</h1>
+        </div>
+
+        <div class="info-box">
+            <strong>ℹ️ Request Status:</strong> Your organizer request has been reviewed.
+        </div>
+
+        <p>Hi <strong>{{user_name}}</strong>,</p>
+
+        <p>Thank you for your interest in becoming an event organizer on TerpSpark. After careful review, we are unable to approve your organizer request at this time.</p>
+
+        <div class="feedback-box">
+            <h3>Feedback from Admin Team:</h3>
+            <p>{{notes}}</p>
+        </div>
+
+        <p><strong>What this means:</strong></p>
+        <ul>
+            <li>Your account remains active as a student user</li>
+            <li>You can still register for and attend events</li>
+            <li>You may reapply for organizer status in the future</li>
+        </ul>
+
+        <p><strong>Next Steps:</strong></p>
+        <ul>
+            <li>Review the feedback provided above</li>
+            <li>If you have questions, contact our admin team</li>
+            <li>You can submit a new organizer request after addressing the concerns</li>
+        </ul>
+
+        <p>We encourage you to continue engaging with the TerpSpark community and consider reapplying when you're ready.</p>
+
+        <center>
+            <a href="https://terpspark.umd.edu/events" class="button">Browse Events</a>
+        </center>
+
+        <div class="footer">
+            <p><strong>TerpSpark</strong> - University of Maryland Event Management</p>
+            <p>For questions or concerns, contact <a href="mailto:admin@terpspark.umd.edu">admin@terpspark.umd.edu</a></p>
+        </div>
+    </div>
+</body>
+</html>
