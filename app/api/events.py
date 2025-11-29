@@ -18,6 +18,10 @@ from app.schemas.event import (
 from app.schemas.category import CategoriesResponse, CategoryResponse
 from app.schemas.venue import VenuesResponse, VenueResponse
 from app.schemas.auth import ErrorResponse
+from app.middleware.auth import get_current_active_user
+from app.models.user import User, UserRole
+from app.services.registration_service import RegistrationService
+
 
 router = APIRouter(prefix="/api", tags=["Events"])
 
@@ -73,7 +77,8 @@ async def get_events(
         le=100,
         description="Items per page (default: 20, max: 100)"
     ),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Retrieve paginated list of published events with optional filters.
@@ -113,6 +118,19 @@ async def get_events(
             page=page,
             limit=limit
         )
+        ## make a call to the registrations API to get the registrations for the user
+       
+
+        ## if the user is a student, we need to check if they are registered for the event
+        if current_user and current_user.role == UserRole.STUDENT:
+            registration_service = RegistrationService(db)
+            registrations = registration_service.get_user_registrations(user_id=current_user.id)
+            events = [event for event in events if event.id not in [registration.event_id for registration in registrations]]
+
+        ## if the user is an organizer, only show the events that they are organizing
+        # if current_user and current_user.role == UserRole.ORGANIZER:
+        #     events = [event for event in events if event.organizer_id == current_user.id]
+                
         
         # Convert events to response format
         event_responses = []
