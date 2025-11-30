@@ -26,6 +26,23 @@ from app.services.registration_service import RegistrationService
 router = APIRouter(prefix="/api", tags=["Events"])
 
 
+# Health check endpoint (must be before parameterized routes)
+@router.get("/events/health")
+async def health_check():
+    """
+    Health check endpoint for events API.
+    
+    **Returns:**
+    - API status and version
+    """
+    return {
+        "status": "healthy",
+        "service": "TerpSpark Events API",
+        "version": "1.0.0",
+        "phase": "Phase 2: Event Discovery & Browse"
+    }
+
+
 @router.get(
     "/events",
     response_model=EventsListResponse,
@@ -395,21 +412,4 @@ async def get_venues(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve venues: {str(e)}"
         )
-
-
-# Health check endpoint
-@router.get("/events/health")
-async def health_check():
-    """
-    Health check endpoint for events API.
-    
-    **Returns:**
-    - API status and version
-    """
-    return {
-        "status": "healthy",
-        "service": "TerpSpark Events API",
-        "version": "1.0.0",
-        "phase": "Phase 2: Event Discovery & Browse"
-    }
 

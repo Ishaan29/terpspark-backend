@@ -7,8 +7,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.database import Base, get_db
 from app.models.user import User, UserRole
+from app.models.category import Category
+from app.models.venue import Venue
+from app.models.event import Event, EventStatus
 from app.core.security import get_password_hash
 from main import app
+from datetime import date, time, datetime, timedelta
 import uuid
 
 # Use in-memory SQLite for testing
@@ -98,3 +102,64 @@ def sample_admin(db):
     db.commit()
     db.refresh(user)
     return user
+
+
+@pytest.fixture
+def sample_category(db):
+    """Create a sample category."""
+    category = Category(
+        id=str(uuid.uuid4()),
+        name="Test Category",
+        slug="test-category",
+        description="A test category",
+        color="blue",
+        icon="test-icon",
+        is_active=True
+    )
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+@pytest.fixture
+def sample_venue(db):
+    """Create a sample venue."""
+    venue = Venue(
+        id=str(uuid.uuid4()),
+        name="Test Venue",
+        building="Test Building",
+        capacity=100,
+        facilities=["Projector", "WiFi"],
+        is_active=True
+    )
+    db.add(venue)
+    db.commit()
+    db.refresh(venue)
+    return venue
+
+
+@pytest.fixture
+def sample_published_event(db, sample_category, sample_organizer):
+    """Create a sample published event."""
+    event = Event(
+        id=str(uuid.uuid4()),
+        title="Test Published Event",
+        description="This is a test published event with enough description to pass validation requirements.",
+        category_id=sample_category.id,
+        organizer_id=sample_organizer.id,
+        date=date.today() + timedelta(days=7),
+        start_time=time(10, 0),
+        end_time=time(12, 0),
+        venue="Test Venue",
+        location="Test Location, Room 101",
+        capacity=100,
+        registered_count=0,
+        waitlist_count=0,
+        status=EventStatus.PUBLISHED,
+        published_at=datetime.now()
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
