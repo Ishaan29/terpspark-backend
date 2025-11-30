@@ -53,13 +53,33 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors with custom response format."""
     logger.error(f"Validation error: {exc.errors()}")
+    # Convert errors to JSON-serializable format
+    errors = []
+    for error in exc.errors():
+        error_dict = {
+            "type": error.get("type"),
+            "loc": error.get("loc"),
+            "msg": error.get("msg"),
+            "input": str(error.get("input", ""))[:100]  # Truncate long inputs
+        }
+        # Handle ctx if present, but convert exceptions to strings
+        if "ctx" in error:
+            ctx = {}
+            for key, value in error["ctx"].items():
+                if isinstance(value, Exception):
+                    ctx[key] = str(value)
+                else:
+                    ctx[key] = value
+            error_dict["ctx"] = ctx
+        errors.append(error_dict)
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "success": False,
             "error": "Validation failed",
             "code": "VALIDATION_FAILED",
-            "details": exc.errors()
+            "details": errors
         }
     )
 

@@ -2,7 +2,7 @@
 Registration API routes for Phase 3: Student Registration Flow.
 Handles event registration, cancellation, and waitlist management.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.registration_service import RegistrationService
@@ -145,7 +145,7 @@ async def register_for_event(
     status_code=status.HTTP_200_OK
 )
 async def get_user_registrations(
-    status: str = "confirmed",
+    status_filter: str = Query("confirmed", alias="status"),
     include_past: bool = False,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -156,7 +156,7 @@ async def get_user_registrations(
     **Authentication Required:** Yes (must be logged in)
 
     **Query Parameters:**
-    - `status`: Filter by status - 'confirmed', 'cancelled', or 'all' (default: 'confirmed')
+    - `status_filter`: Filter by status - 'confirmed', 'cancelled', or 'all' (default: 'confirmed')
     - `include_past`: Include past events (default: false)
 
     **Success Response (200):**
@@ -205,7 +205,7 @@ async def get_user_registrations(
     - Sorted by event date (upcoming first)
     """
     # Validate status parameter
-    if status not in ["confirmed", "cancelled", "all"]:
+    if status_filter not in ["confirmed", "cancelled", "all"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid status parameter. Must be 'confirmed', 'cancelled', or 'all'"
@@ -218,7 +218,7 @@ async def get_user_registrations(
         # Get user's registrations
         registrations = registration_service.get_user_registrations(
             user_id=current_user.id,
-            status_filter=status,
+            status_filter=status_filter,
             include_past=include_past
         )
 
