@@ -13,6 +13,8 @@ from app.models.venue import Venue
 from app.models.event import Event, EventStatus
 from app.models.registration import Registration, RegistrationStatus, CheckInStatus
 from app.models.waitlist import WaitlistEntry, NotificationPreference
+from app.models.organizer_approval import OrganizerApprovalRequest, ApprovalStatus
+from app.models.audit_log import AuditLog, AuditAction, TargetType
 from app.core.security import get_password_hash
 from main import app
 from datetime import date, time, datetime, timedelta
@@ -338,6 +340,82 @@ def sample_checked_in_registration(db, sample_student, sample_published_event):
     return registration
 
 
+@pytest.fixture
+def sample_pending_event(db, sample_category, sample_organizer):
+    """Create a sample pending event."""
+    event = Event(
+        id=str(uuid.uuid4()),
+        title="Test Pending Event",
+        description="This is a test pending event with enough description to pass validation requirements.",
+        category_id=sample_category.id,
+        organizer_id=sample_organizer.id,
+        date=date.today() + timedelta(days=7),
+        start_time=time(10, 0),
+        end_time=time(12, 0),
+        venue="Test Venue",
+        location="Test Location, Room 101",
+        capacity=100,
+        registered_count=0,
+        waitlist_count=0,
+        status=EventStatus.PENDING
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@pytest.fixture
+def sample_organizer_approval_request(db, sample_pending_organizer):
+    """Create a sample organizer approval request."""
+    approval_request = OrganizerApprovalRequest(
+        id=str(uuid.uuid4()),
+        user_id=sample_pending_organizer.id,
+        reason="I want to organize events for the university community and help students connect.",
+        status=ApprovalStatus.PENDING,
+        requested_at=datetime.now()
+    )
+    db.add(approval_request)
+    db.commit()
+    db.refresh(approval_request)
+    return approval_request
+
+
+@pytest.fixture
+def sample_inactive_category(db):
+    """Create a sample inactive category."""
+    category = Category(
+        id=str(uuid.uuid4()),
+        name="Inactive Category",
+        slug="inactive-category",
+        description="An inactive test category",
+        color="gray",
+        icon="inactive-icon",
+        is_active=False
+    )
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+@pytest.fixture
+def sample_inactive_venue(db):
+    """Create a sample inactive venue."""
+    venue = Venue(
+        id=str(uuid.uuid4()),
+        name="Inactive Venue",
+        building="Inactive Building",
+        capacity=50,
+        facilities=[],
+        is_active=False
+    )
+    db.add(venue)
+    db.commit()
+    db.refresh(venue)
+    return venue
+
+
 @pytest.fixture(autouse=True)
 def mock_email_service():
     """Mock email service to avoid actual email sending."""
@@ -351,6 +429,10 @@ def mock_email_service():
         mock_instance.send_waitlist_confirmation.return_value = True
         mock_instance.send_waitlist_promotion.return_value = True
         mock_instance.send_announcement.return_value = {"recipientCount": 1}
+        mock_instance.send_organizer_approval.return_value = True
+        mock_instance.send_organizer_rejection.return_value = True
+        mock_instance.send_event_approval.return_value = True
+        mock_instance.send_event_rejection.return_value = True
         mock_reg_email.return_value = mock_instance
         mock_org_email.return_value = mock_instance
         mock_admin_email.return_value = mock_instance
