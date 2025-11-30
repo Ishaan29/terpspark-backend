@@ -91,6 +91,40 @@ def sample_organizer(db):
 
 
 @pytest.fixture
+def sample_pending_organizer(db):
+    """Create a sample pending (not approved) organizer."""
+    user = User(
+        id=str(uuid.uuid4()),
+        email="pendingorganizer@umd.edu",
+        password=get_password_hash("password123"),
+        name="Pending Organizer",
+        role=UserRole.ORGANIZER,
+        is_approved=False
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture
+def sample_other_organizer(db):
+    """Create another sample approved organizer for ownership tests."""
+    user = User(
+        id=str(uuid.uuid4()),
+        email="otherorganizer@umd.edu",
+        password=get_password_hash("password123"),
+        name="Other Organizer",
+        role=UserRole.ORGANIZER,
+        is_approved=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture
 def sample_admin(db):
     """Create a sample admin user."""
     user = User(
@@ -195,6 +229,57 @@ def sample_full_event(db, sample_category, sample_organizer):
 
 
 @pytest.fixture
+def sample_draft_event(db, sample_category, sample_organizer):
+    """Create a sample draft event."""
+    event = Event(
+        id=str(uuid.uuid4()),
+        title="Test Draft Event",
+        description="This is a test draft event with enough description to pass validation requirements.",
+        category_id=sample_category.id,
+        organizer_id=sample_organizer.id,
+        date=date.today() + timedelta(days=7),
+        start_time=time(10, 0),
+        end_time=time(12, 0),
+        venue="Test Venue",
+        location="Test Location, Room 101",
+        capacity=100,
+        registered_count=0,
+        waitlist_count=0,
+        status=EventStatus.DRAFT
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@pytest.fixture
+def sample_cancelled_event(db, sample_category, sample_organizer):
+    """Create a sample cancelled event."""
+    event = Event(
+        id=str(uuid.uuid4()),
+        title="Test Cancelled Event",
+        description="This is a test cancelled event with enough description to pass validation requirements.",
+        category_id=sample_category.id,
+        organizer_id=sample_organizer.id,
+        date=date.today() + timedelta(days=7),
+        start_time=time(10, 0),
+        end_time=time(12, 0),
+        venue="Test Venue",
+        location="Test Location, Room 101",
+        capacity=100,
+        registered_count=0,
+        waitlist_count=0,
+        status=EventStatus.CANCELLED,
+        cancelled_at=datetime.now()
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@pytest.fixture
 def sample_registration(db, sample_student, sample_published_event):
     """Create a sample registration."""
     registration = Registration(
@@ -231,15 +316,42 @@ def sample_waitlist_entry(db, sample_student, sample_full_event):
     return waitlist_entry
 
 
+@pytest.fixture
+def sample_checked_in_registration(db, sample_student, sample_published_event):
+    """Create a sample checked-in registration."""
+    registration = Registration(
+        id=str(uuid.uuid4()),
+        user_id=sample_student.id,
+        event_id=sample_published_event.id,
+        status=RegistrationStatus.CONFIRMED,
+        ticket_code="TKT-CHECKED-123",
+        qr_code="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        check_in_status=CheckInStatus.CHECKED_IN,
+        checked_in_at=datetime.now(),
+        guests=None,
+        sessions=None,
+        reminder_sent=False
+    )
+    db.add(registration)
+    db.commit()
+    db.refresh(registration)
+    return registration
+
+
 @pytest.fixture(autouse=True)
 def mock_email_service():
     """Mock email service to avoid actual email sending."""
-    with patch('app.services.registration_service.EmailService') as mock_email:
+    with patch('app.services.registration_service.EmailService') as mock_reg_email, \
+         patch('app.services.organizer_service.EmailService') as mock_org_email, \
+         patch('app.services.admin_service.EmailService') as mock_admin_email:
         # Create a mock instance
         mock_instance = Mock()
         mock_instance.send_registration_confirmation.return_value = True
         mock_instance.send_cancellation_confirmation.return_value = True
         mock_instance.send_waitlist_confirmation.return_value = True
         mock_instance.send_waitlist_promotion.return_value = True
-        mock_email.return_value = mock_instance
+        mock_instance.send_announcement.return_value = {"recipientCount": 1}
+        mock_reg_email.return_value = mock_instance
+        mock_org_email.return_value = mock_instance
+        mock_admin_email.return_value = mock_instance
         yield mock_instance
