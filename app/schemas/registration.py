@@ -33,6 +33,7 @@ class EventBasicInfo(BaseModel):
     title: str
     date: str
     startTime: str
+    endTime: str
     venue: str
     organizer: dict
 

@@ -526,6 +526,7 @@ include_past?: boolean                       // Default: false
         "title": "string",
         "date": "YYYY-MM-DD",
         "startTime": "HH:MM",
+        "endTime": "HH:MM",
         "venue": "string",
         "organizer": {
           "name": "string"

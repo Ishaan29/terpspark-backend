@@ -173,6 +173,7 @@ async def get_user_registrations(
                     "title": "AI & Machine Learning Workshop",
                     "date": "2025-12-03",
                     "startTime": "14:00",
+                    "endTime": "17:00",
                     "venue": "Engineering Building",
                     "organizer": {
                         "name": "Tech Club"
@@ -233,6 +234,7 @@ async def get_user_registrations(
                     title=reg.event.title,
                     date=reg.event.date.isoformat() if reg.event.date else "",
                     startTime=reg.event.start_time.strftime('%H:%M') if reg.event.start_time else "",
+                    endTime=reg.event.end_time.strftime('%H:%M') if reg.event.end_time else "",
                     venue=reg.event.venue,
                     organizer={
                         "name": reg.event.organizer.name if reg.event.organizer else ""
