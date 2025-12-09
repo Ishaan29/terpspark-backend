@@ -1,7 +1,3 @@
-"""
-User database model.
-Represents users with different roles: student, organizer, admin.
-"""
 from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 from datetime import datetime

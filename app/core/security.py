@@ -1,14 +1,9 @@
-"""
-Security utilities for authentication and authorization.
-Handles password hashing, JWT token generation/validation, and user verification.
-"""
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.core.config import settings
 
-# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

@@ -1,7 +1,3 @@
-"""
-Waitlist API routes for Phase 3: Student Registration Flow.
-Handles waitlist join, view, and leave operations.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -17,7 +13,6 @@ from app.schemas.waitlist import (
 )
 from app.schemas.auth import ErrorResponse
 
-# Create router with prefix and tags
 router = APIRouter(prefix="/api/waitlist", tags=["Waitlist"])
 
 
@@ -151,19 +146,15 @@ async def get_user_waitlist(
     - Returns only current user's waitlist entries
     - Sorted by join date (oldest first)
     """
-    # Initialize registration service
     registration_service = RegistrationService(db)
 
     try:
-        # Get user's waitlist entries
         waitlist_entries = registration_service.get_user_waitlist(
             user_id=current_user.id
         )
 
-        # Convert to response format
         waitlist_responses = []
         for entry in waitlist_entries:
-            # Build event info
             event_info = None
             if entry.event:
                 event_info = EventWaitlistInfo(
@@ -256,8 +247,6 @@ async def leave_waitlist(
             detail=f"Failed to leave waitlist: {str(e)}"
         )
 
-
-# Health check endpoint for waitlist API
 @router.get("/health")
 async def health_check():
     """

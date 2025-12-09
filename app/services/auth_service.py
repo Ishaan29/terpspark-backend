@@ -1,7 +1,3 @@
-"""
-Authentication service for business logic.
-Handles authentication operations and business rules.
-"""
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -13,33 +9,13 @@ from app.schemas.auth import UserLogin, UserCreate
 
 
 class AuthService:
-    """Service for authentication operations."""
     
     def __init__(self, db: Session):
-        """
-        Initialize service with database session.
-
-        Args:
-            db: SQLAlchemy database session
-        """
         self.db = db
         self.user_repo = UserRepository(db)
         self.approval_repo = OrganizerApprovalRepository(db)
     
     def authenticate_user(self, credentials: UserLogin) -> Tuple[User, str]:
-        """
-        Authenticate user with email and password.
-        
-        Args:
-            credentials: Login credentials
-            
-        Returns:
-            Tuple[User, str]: Authenticated user and JWT token
-            
-        Raises:
-            HTTPException: If authentication fails
-        """
-        # Get user by email
         user = self.user_repo.get_by_email(credentials.email)
         
         if not user:
@@ -49,7 +25,6 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Verify password
         if not verify_password(credentials.password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,7 +32,6 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Check if user can login
         if not user.can_login:
             if user.is_organizer and not user.is_approved:
                 raise HTTPException(
@@ -70,10 +44,8 @@ class AuthService:
                     detail="Your account has been deactivated. Please contact an administrator."
                 )
         
-        # Update last login
         self.user_repo.update_last_login(user)
         
-        # Create JWT token
         token_data = {
             "sub": user.id,
             "email": user.email,
@@ -85,19 +57,6 @@ class AuthService:
         return user, token
     
     def register_user(self, user_data: UserCreate) -> User:
-        """
-        Register a new user.
-        
-        Args:
-            user_data: User registration data
-            
-        Returns:
-            User: Created user
-            
-        Raises:
-            HTTPException: If email already exists
-        """
-        # Check if email already exists
         existing_user = self.user_repo.get_by_email(user_data.email)
         if existing_user:
             raise HTTPException(
@@ -105,7 +64,6 @@ class AuthService:
                 detail="Email already registered."
             )
         
-        # Create user
         try:
             user = self.user_repo.create(
                 email=user_data.email,
@@ -116,7 +74,6 @@ class AuthService:
                 phone=user_data.phone
             )
 
-            # If user is organizer, create approval request
             if user.role == UserRole.ORGANIZER:
                 reason = (
                     f"User {user.name} ({user.email}) from {user.department} department "
@@ -135,13 +92,4 @@ class AuthService:
             )
     
     def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """
-        Get user by ID.
-        
-        Args:
-            user_id: User ID
-            
-        Returns:
-            Optional[User]: User if found, None otherwise
-        """
         return self.user_repo.get_by_id(user_id)

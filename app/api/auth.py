@@ -1,7 +1,3 @@
-"""
-Authentication API routes.
-Handles login, logout, token validation, and user info endpoints.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -160,9 +156,6 @@ async def logout(
     **Returns:**
     - Success message
     """
-    # In a stateless JWT system, logout is primarily client-side
-    # Server-side, we could add the token to a blacklist/revocation list
-    # For now, we just confirm the user is authenticated
     
     return LogoutResponse(
         success=True,

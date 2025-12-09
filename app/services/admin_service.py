@@ -1,8 +1,3 @@
-"""
-Admin service for business logic.
-Handles admin operations: approvals, reference data management, analytics.
-Phase 5: Admin Console & Management
-"""
 from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -26,15 +21,8 @@ from app.utils.email_service import EmailService
 
 
 class AdminService:
-    """Service for admin operations."""
 
     def __init__(self, db: Session):
-        """
-        Initialize service with database session.
-
-        Args:
-            db: SQLAlchemy database session
-        """
         self.db = db
         self.user_repo = UserRepository(db)
         self.event_repo = EventRepository(db)
@@ -45,43 +33,20 @@ class AdminService:
         self.email_service = EmailService(db)
 
     def _verify_admin(self, user: User) -> None:
-        """
-        Verify that user is an admin.
-
-        Args:
-            user: Current user
-
-        Raises:
-            HTTPException: If user is not admin
-        """
         if user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin role required"
             )
 
-    # ========================================================================
-    # ORGANIZER APPROVALS
-    # ========================================================================
 
     def get_organizer_approvals(
         self,
         admin: User,
         status_filter: str = "pending"
     ) -> List[OrganizerApprovalRequest]:
-        """
-        Get organizer approval requests.
-
-        Args:
-            admin: Admin user
-            status_filter: 'pending', 'approved', 'rejected', or 'all'
-
-        Returns:
-            List[OrganizerApprovalRequest]: List of approval requests
-        """
         self._verify_admin(admin)
 
-        # Explicitly join on requester FK to avoid ambiguity with reviewed_by FK
         query = self.db.query(OrganizerApprovalRequest).join(
             User, OrganizerApprovalRequest.user_id == User.id
         )
@@ -105,22 +70,8 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> OrganizerApprovalRequest:
-        """
-        Approve an organizer request.
-
-        Args:
-            request_id: Request ID
-            admin: Admin user
-            notes: Optional approval notes
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            OrganizerApprovalRequest: Updated request
-        """
         self._verify_admin(admin)
 
-        # Get request
         approval_request = self.db.query(OrganizerApprovalRequest).filter(
             OrganizerApprovalRequest.id == request_id
         ).first()
@@ -137,7 +88,6 @@ class AdminService:
                 detail=f"Request already {approval_request.status.value}"
             )
 
-        # Get user
         user = self.user_repo.get_by_id(approval_request.user_id)
         if not user:
             raise HTTPException(
@@ -145,23 +95,19 @@ class AdminService:
                 detail="User not found"
             )
 
-        # Update user role and approval status
         user.role = UserRole.ORGANIZER
         user.is_approved = True
 
-        # Update approval request
         approval_request.status = ApprovalStatus.APPROVED
         approval_request.reviewed_by = admin.id
         approval_request.reviewed_at = datetime.now()
         approval_request.notes = notes
 
-        # Send approval email
         try:
             self.email_service.send_organizer_approval(user=user, notes=notes)
         except Exception as e:
             print(f"Warning: Failed to send approval email: {str(e)}")
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.ORGANIZER_APPROVED,
             actor_id=admin.id,
@@ -189,22 +135,8 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> OrganizerApprovalRequest:
-        """
-        Reject an organizer request.
-
-        Args:
-            request_id: Request ID
-            admin: Admin user
-            notes: Rejection reason (required)
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            OrganizerApprovalRequest: Updated request
-        """
         self._verify_admin(admin)
 
-        # Get request
         approval_request = self.db.query(OrganizerApprovalRequest).filter(
             OrganizerApprovalRequest.id == request_id
         ).first()
@@ -221,22 +153,18 @@ class AdminService:
                 detail=f"Request already {approval_request.status.value}"
             )
 
-        # Get user
         user = self.user_repo.get_by_id(approval_request.user_id)
 
-        # Update approval request
         approval_request.status = ApprovalStatus.REJECTED
         approval_request.reviewed_by = admin.id
         approval_request.reviewed_at = datetime.now()
         approval_request.notes = notes
 
-        # Send rejection email with feedback
         try:
             self.email_service.send_organizer_rejection(user=user, notes=notes)
         except Exception as e:
             print(f"Warning: Failed to send rejection email: {str(e)}")
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.ORGANIZER_REJECTED,
             actor_id=admin.id,
@@ -256,20 +184,7 @@ class AdminService:
 
         return approval_request
 
-    # ========================================================================
-    # EVENT APPROVALS
-    # ========================================================================
-
     def get_pending_events(self, admin: User) -> List[Event]:
-        """
-        Get events awaiting approval.
-
-        Args:
-            admin: Admin user
-
-        Returns:
-            List[Event]: List of pending events
-        """
         self._verify_admin(admin)
 
         return self.event_repo.get_pending_events()
@@ -282,22 +197,8 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Event:
-        """
-        Approve and publish an event.
-
-        Args:
-            event_id: Event ID
-            admin: Admin user
-            notes: Optional approval notes
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Event: Approved event
-        """
         self._verify_admin(admin)
 
-        # Get event
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -311,18 +212,15 @@ class AdminService:
                 detail=f"Event is not pending (current status: {event.status.value})"
             )
 
-        # Approve event
         event.status = EventStatus.PUBLISHED
         event.published_at = datetime.now()
 
-        # Notify organizer
         organizer = event.organizer
         try:
             self.email_service.send_event_approval(organizer=organizer, event=event, notes=notes)
         except Exception as e:
             print(f"Warning: Failed to send approval email: {str(e)}")
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.EVENT_APPROVED,
             actor_id=admin.id,
@@ -350,22 +248,8 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Event:
-        """
-        Reject an event submission.
-
-        Args:
-            event_id: Event ID
-            admin: Admin user
-            notes: Rejection reason (required)
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Event: Rejected event
-        """
         self._verify_admin(admin)
 
-        # Get event
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -379,18 +263,15 @@ class AdminService:
                 detail=f"Event is not pending (current status: {event.status.value})"
             )
 
-        # Reject event (sets status to cancelled)
         event.status = EventStatus.CANCELLED
         event.cancelled_at = datetime.now()
 
-        # Notify organizer with feedback
         organizer = event.organizer
         try:
             self.email_service.send_event_rejection(organizer=organizer, event=event, notes=notes)
         except Exception as e:
             print(f"Warning: Failed to send rejection email: {str(e)}")
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.EVENT_REJECTED,
             actor_id=admin.id,
@@ -410,21 +291,7 @@ class AdminService:
 
         return event
 
-    # ========================================================================
-    # CATEGORY MANAGEMENT
-    # ========================================================================
-
     def get_all_categories(self, admin: User, include_inactive: bool = True) -> List[Category]:
-        """
-        Get all categories.
-
-        Args:
-            admin: Admin user
-            include_inactive: Include inactive categories
-
-        Returns:
-            List[Category]: List of categories
-        """
         self._verify_admin(admin)
         return self.category_repo.get_all(active_only=not include_inactive)
 
@@ -439,29 +306,11 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Category:
-        """
-        Create a new category.
-
-        Args:
-            admin: Admin user
-            name: Category name
-            color: Color code
-            slug: Category slug (auto-generated if not provided)
-            description: Category description
-            icon: Icon identifier
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Category: Created category
-        """
         self._verify_admin(admin)
 
-        # Auto-generate slug if not provided
         if not slug:
             slug = name.lower().replace(" ", "-").replace("&", "and")
 
-        # Check if slug exists
         existing = self.category_repo.get_by_slug(slug)
         if existing:
             raise HTTPException(
@@ -469,7 +318,6 @@ class AdminService:
                 detail=f"Category with slug '{slug}' already exists"
             )
 
-        # Create category
         category = self.category_repo.create(
             name=name,
             slug=slug,
@@ -478,7 +326,6 @@ class AdminService:
             icon=icon
         )
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.CATEGORY_CREATED,
             actor_id=admin.id,
@@ -505,22 +352,6 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Category:
-        """
-        Update a category.
-
-        Args:
-            category_id: Category ID
-            admin: Admin user
-            name: New name
-            description: New description
-            color: New color
-            icon: New icon
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Category: Updated category
-        """
         self._verify_admin(admin)
 
         category = self.category_repo.get_by_id(category_id)
@@ -530,7 +361,6 @@ class AdminService:
                 detail="Category not found"
             )
 
-        # Build update dict
         updates = {}
         if name is not None:
             updates['name'] = name
@@ -544,7 +374,6 @@ class AdminService:
         if updates:
             category = self.category_repo.update(category, **updates)
 
-            # Log audit
             self.audit_repo.create(
                 action=AuditAction.CATEGORY_UPDATED,
                 actor_id=admin.id,
@@ -568,18 +397,6 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Category:
-        """
-        Retire/reactivate a category.
-
-        Args:
-            category_id: Category ID
-            admin: Admin user
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Category: Updated category
-        """
         self._verify_admin(admin)
 
         category = self.category_repo.get_by_id(category_id)
@@ -589,7 +406,6 @@ class AdminService:
                 detail="Category not found"
             )
 
-        # Check if events are using this category
         if category.is_active:
             event_count = self.category_repo.count_events_using_category(category_id)
             if event_count > 0:
@@ -598,12 +414,10 @@ class AdminService:
                     detail=f"Cannot retire category with {event_count} active event(s)"
                 )
 
-        # Toggle status
         category = self.category_repo.toggle_active(category)
 
         action_text = "retired" if not category.is_active else "reactivated"
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.CATEGORY_RETIRED,
             actor_id=admin.id,
@@ -619,21 +433,7 @@ class AdminService:
 
         return category
 
-    # ========================================================================
-    # VENUE MANAGEMENT
-    # ========================================================================
-
     def get_all_venues(self, admin: User, include_inactive: bool = True) -> List[Venue]:
-        """
-        Get all venues.
-
-        Args:
-            admin: Admin user
-            include_inactive: Include inactive venues
-
-        Returns:
-            List[Venue]: List of venues
-        """
         self._verify_admin(admin)
         return self.venue_repo.get_all(active_only=not include_inactive)
 
@@ -647,21 +447,6 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Venue:
-        """
-        Create a new venue.
-
-        Args:
-            admin: Admin user
-            name: Venue name
-            building: Building name
-            capacity: Venue capacity
-            facilities: List of facilities
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Venue: Created venue
-        """
         self._verify_admin(admin)
 
         venue = self.venue_repo.create(
@@ -671,7 +456,6 @@ class AdminService:
             facilities=facilities
         )
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.VENUE_CREATED,
             actor_id=admin.id,
@@ -698,22 +482,6 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Venue:
-        """
-        Update a venue.
-
-        Args:
-            venue_id: Venue ID
-            admin: Admin user
-            name: New name
-            building: New building
-            capacity: New capacity
-            facilities: New facilities list
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Venue: Updated venue
-        """
         self._verify_admin(admin)
 
         venue = self.venue_repo.get_by_id(venue_id)
@@ -723,7 +491,6 @@ class AdminService:
                 detail="Venue not found"
             )
 
-        # Build update dict
         updates = {}
         if name is not None:
             updates['name'] = name
@@ -737,7 +504,6 @@ class AdminService:
         if updates:
             venue = self.venue_repo.update(venue, **updates)
 
-            # Log audit
             self.audit_repo.create(
                 action=AuditAction.VENUE_UPDATED,
                 actor_id=admin.id,
@@ -761,18 +527,6 @@ class AdminService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Venue:
-        """
-        Retire/reactivate a venue.
-
-        Args:
-            venue_id: Venue ID
-            admin: Admin user
-            ip_address: Request IP
-            user_agent: Request user agent
-
-        Returns:
-            Venue: Updated venue
-        """
         self._verify_admin(admin)
 
         venue = self.venue_repo.get_by_id(venue_id)
@@ -782,12 +536,10 @@ class AdminService:
                 detail="Venue not found"
             )
 
-        # Toggle status
         venue = self.venue_repo.toggle_active(venue)
 
         action_text = "retired" if not venue.is_active else "reactivated"
 
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.VENUE_RETIRED,
             actor_id=admin.id,
@@ -803,10 +555,6 @@ class AdminService:
 
         return venue
 
-    # ========================================================================
-    # AUDIT LOGS
-    # ========================================================================
-
     def get_audit_logs(
         self,
         admin: User,
@@ -818,29 +566,11 @@ class AdminService:
         page: int = 1,
         limit: int = 50
     ) -> Tuple[List[AuditLog], int]:
-        """
-        Get paginated audit logs with filters.
-
-        Args:
-            admin: Admin user
-            action: Filter by action type
-            start_date: Filter by start date
-            end_date: Filter by end date
-            user_id: Filter by user ID
-            search: Search in details
-            page: Page number
-            limit: Items per page
-
-        Returns:
-            Tuple[List[AuditLog], int]: Logs and total count
-        """
         self._verify_admin(admin)
 
-        # Parse dates
         start_date_obj = date.fromisoformat(start_date) if start_date else None
         end_date_obj = date.fromisoformat(end_date) if end_date else None
 
-        # Convert action string to enum
         action_enum = None
         if action:
             try:
@@ -858,10 +588,6 @@ class AdminService:
             limit=limit
         )
 
-    # ========================================================================
-    # ANALYTICS & DASHBOARD
-    # ========================================================================
-
     def get_analytics(
         self,
         admin: User,
@@ -869,21 +595,8 @@ class AdminService:
         end_date: Optional[str] = None,
         category: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Get system-wide analytics.
-
-        Args:
-            admin: Admin user
-            start_date: Filter start date
-            end_date: Filter end date
-            category: Filter by category
-
-        Returns:
-            Dict: Analytics data
-        """
         self._verify_admin(admin)
 
-        # For now, return basic analytics
         # TODO: Implement comprehensive analytics queries
 
         total_events = self.db.query(Event).count()
@@ -907,7 +620,7 @@ class AdminService:
             User.is_active == True
         ).count()
 
-        # Analytics by category
+        
         from sqlalchemy import func
         category_analytics = []
         categories = self.category_repo.get_all(active_only=True)
@@ -952,7 +665,7 @@ class AdminService:
                     "attendance": day_attendance
                 })
 
-        # Top events by registration count
+        
         top_events = []
         events = self.db.query(Event).filter(
             Event.status == EventStatus.PUBLISHED
@@ -973,7 +686,7 @@ class AdminService:
                 "attendanceRate": round(event_rate, 1)
             })
 
-        # Organizer statistics
+        
         organizer_stats = []
         organizers = self.db.query(User).filter(
             User.role == UserRole.ORGANIZER,
@@ -1015,15 +728,6 @@ class AdminService:
         }
 
     def get_dashboard_stats(self, admin: User) -> Dict[str, Any]:
-        """
-        Get admin dashboard statistics.
-
-        Args:
-            admin: Admin user
-
-        Returns:
-            Dict: Dashboard statistics
-        """
         self._verify_admin(admin)
 
         pending_organizers = self.db.query(OrganizerApprovalRequest).filter(

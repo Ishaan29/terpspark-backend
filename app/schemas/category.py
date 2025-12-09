@@ -1,13 +1,8 @@
-"""
-Pydantic schemas for category requests and responses.
-Provides data validation and serialization for category endpoints.
-"""
 from pydantic import BaseModel, Field
 from typing import Optional
 
 
 class CategoryBase(BaseModel):
-    """Base category schema with common fields."""
     name: str = Field(..., min_length=2, max_length=100)
     color: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = None
@@ -15,12 +10,10 @@ class CategoryBase(BaseModel):
 
 
 class CategoryCreate(CategoryBase):
-    """Schema for creating a new category."""
     slug: Optional[str] = Field(None, max_length=100, description="Auto-generated if not provided")
 
 
 class CategoryUpdate(BaseModel):
-    """Schema for updating a category."""
     name: Optional[str] = Field(None, min_length=2, max_length=100)
     description: Optional[str] = None
     color: Optional[str] = Field(None, min_length=3, max_length=50)
@@ -28,7 +21,6 @@ class CategoryUpdate(BaseModel):
 
 
 class CategoryResponse(BaseModel):
-    """Schema for category data in responses."""
     id: str
     name: str
     slug: str
@@ -44,7 +36,6 @@ class CategoryResponse(BaseModel):
 
 
 class CategoriesResponse(BaseModel):
-    """Schema for list of categories response."""
     success: bool = True
     categories: list[CategoryResponse]
 

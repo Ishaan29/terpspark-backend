@@ -1,7 +1,3 @@
-"""
-Database initialization script.
-Creates sample data for all models for testing purposes.
-"""
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,7 +17,6 @@ import uuid
 
 
 def create_sample_users(db):
-    """Create sample users for each role."""
     print("\n👥 Creating sample users...")
     
     users = []

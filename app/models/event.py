@@ -1,7 +1,3 @@
-"""
-Event database model.
-Represents events created by organizers.
-"""
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, Enum as SQLEnum, JSON, ForeignKey, Date, Time
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -24,32 +20,32 @@ class Event(Base):
     """
     __tablename__ = "events"
     
-    # Primary Key
+    
     id = Column(String(36), primary_key=True, index=True)
     
-    # Basic Information
+    
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     
-    # Foreign Keys
+    
     category_id = Column(String(36), ForeignKey("categories.id"), nullable=False, index=True)
     organizer_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
-    # Date and Time
+    
     date = Column(Date, nullable=False, index=True, comment="Event date in YYYY-MM-DD")
     start_time = Column(Time, nullable=False, comment="Event start time in HH:MM (24-hour)")
     end_time = Column(Time, nullable=False, comment="Event end time in HH:MM (24-hour)")
     
-    # Location
+    
     venue = Column(String(200), nullable=False)
     location = Column(String(500), nullable=False, comment="Detailed location description")
     
-    # Capacity Management
+    
     capacity = Column(Integer, nullable=False, comment="Maximum number of attendees (1-5000)")
     registered_count = Column(Integer, nullable=False, default=0, comment="Current number of registered attendees")
     waitlist_count = Column(Integer, nullable=False, default=0, comment="Current number on waitlist")
     
-    # Status
+    
     status = Column(
         SQLEnum(EventStatus),
         nullable=False,
@@ -57,16 +53,16 @@ class Event(Base):
         index=True
     )
     
-    # Media
+    
     image_url = Column(String(500), nullable=True, comment="URL to event image")
     
-    # Tags - stored as JSON array
+    
     tags = Column(JSON, nullable=True, comment="Array of tag strings")
     
-    # Featured Status
+    
     is_featured = Column(Boolean, nullable=False, default=False, comment="Whether event is featured")
     
-    # Timestamps
+    
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -81,7 +77,7 @@ class Event(Base):
     published_at = Column(DateTime(timezone=True), nullable=True)
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
+
     category = relationship("Category", back_populates="events")
     organizer = relationship("User", foreign_keys=[organizer_id], backref="organized_events")
     registrations = relationship("Registration", back_populates="event", lazy="dynamic")
