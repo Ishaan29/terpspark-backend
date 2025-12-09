@@ -1,7 +1,3 @@
-"""
-Event service for business logic.
-Handles event operations and business rules for Phase 2: Event Discovery & Browse.
-"""
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -16,15 +12,8 @@ from app.repositories.registration_repository import RegistrationRepository
 
 
 class EventService:
-    """Service for event discovery and browsing operations."""
     
     def __init__(self, db: Session):
-        """
-        Initialize service with database session.
-
-        Args:
-            db: SQLAlchemy database session
-        """
         self.db = db
         self.event_repo = EventRepository(db)
         self.category_repo = CategoryRepository(db)
@@ -45,28 +34,6 @@ class EventService:
         user_id: Optional[str] = None,
         exclude_registered: bool = False
     ) -> Tuple[List[Event], int]:
-        """
-        Get paginated list of published events with filters.
-
-        Args:
-            search: Search term for title, description, tags, venue
-            category: Category slug
-            start_date: Filter events after this date (YYYY-MM-DD)
-            end_date: Filter events before this date (YYYY-MM-DD)
-            organizer: Organizer name search
-            availability: If True, only show events with available spots
-            sort_by: Sort field ('date', 'title', 'popularity')
-            page: Page number (1-indexed)
-            limit: Items per page
-            user_id: Current user ID (optional)
-            exclude_registered: If True and user_id provided, exclude events user is registered for
-
-        Returns:
-            Tuple[List[Event], int]: List of events and total count
-
-        Raises:
-            HTTPException: If validation fails
-        """
         # Validate page and limit
         if page < 1:
             raise HTTPException(
@@ -80,7 +47,6 @@ class EventService:
                 detail="Limit must be between 1 and 100"
             )
         
-        # Convert category slug to ID if provided
         category_id = None
         if category:
             cat = self.category_repo.get_by_slug(category)
@@ -91,7 +57,6 @@ class EventService:
                 )
             category_id = cat.id
         
-        # Parse dates if provided
         start_date_obj = None
         end_date_obj = None
         
@@ -113,7 +78,6 @@ class EventService:
                     detail="end_date must be in YYYY-MM-DD format"
                 )
         
-        # Validate sort_by
         valid_sort_options = ["date", "title", "popularity"]
         if sort_by not in valid_sort_options:
             raise HTTPException(
@@ -121,36 +85,31 @@ class EventService:
                 detail=f"sort_by must be one of: {', '.join(valid_sort_options)}"
             )
         
-        # Get events from repository
         try:
             events, total_count = self.event_repo.get_all_published(
                 search=search,
                 category_id=category_id,
                 start_date=start_date_obj,
                 end_date=end_date_obj,
-                organizer_id=None,  # Organizer search by name not implemented yet
+                organizer_id=None,
                 availability=availability,
                 sort_by=sort_by,
                 page=page,
                 limit=limit
             )
 
-            # If user is logged in and exclude_registered is True, filter out registered events
+            
             if user_id and exclude_registered:
-                # Get user's registered event IDs
+                
                 user_registrations = self.registration_repo.get_user_registrations(
                     user_id=user_id,
-                    status=None,  # Get all statuses
-                    include_past=False  # Only upcoming events
+                    status=None, 
+                    include_past=False
                 )
                 registered_event_ids = {reg.event_id for reg in user_registrations}
 
-                # Filter out registered events
                 filtered_events = [event for event in events if event.id not in registered_event_ids]
 
-                # Recalculate total count (approximate, as pagination already happened)
-                # Note: This is a post-filter, so total_count may not be exact
-                # For accurate count, this logic should be in the repository layer
                 return filtered_events, total_count
 
             return events, total_count
@@ -161,18 +120,6 @@ class EventService:
             )
     
     def get_event_by_id(self, event_id: str) -> Event:
-        """
-        Get event details by ID.
-        
-        Args:
-            event_id: Event ID
-            
-        Returns:
-            Event: Event details
-            
-        Raises:
-            HTTPException: If event not found or not published
-        """
         event = self.event_repo.get_by_id(event_id, include_relations=True)
         
         if not event:
@@ -181,8 +128,6 @@ class EventService:
                 detail="Event not found"
             )
         
-        # Only return published events for public API
-        # (Organizers and admins can see their own events regardless of status)
         if event.status != EventStatus.PUBLISHED:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -197,20 +142,6 @@ class EventService:
         user_id: Optional[str] = None,
         is_admin: bool = False
     ) -> Event:
-        """
-        Get event details by ID with user-specific permissions.
-        
-        Args:
-            event_id: Event ID
-            user_id: Current user ID (optional)
-            is_admin: Whether user is admin
-            
-        Returns:
-            Event: Event details
-            
-        Raises:
-            HTTPException: If event not found or user lacks permission
-        """
         event = self.event_repo.get_by_id(event_id, include_relations=True)
         
         if not event:
@@ -219,30 +150,17 @@ class EventService:
                 detail="Event not found"
             )
         
-        # Check permissions
         if event.status == EventStatus.PUBLISHED:
-            # Published events are visible to everyone
             return event
         elif is_admin or (user_id and event.organizer_id == user_id):
-            # Admins and event organizers can see any status
             return event
         else:
-            # Other users can't see non-published events
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Event not found"
             )
     
     def get_all_categories(self, active_only: bool = True) -> List[Category]:
-        """
-        Get all event categories.
-        
-        Args:
-            active_only: If True, return only active categories
-            
-        Returns:
-            List[Category]: List of categories
-        """
         try:
             return self.category_repo.get_all(active_only=active_only)
         except Exception as e:
@@ -252,15 +170,6 @@ class EventService:
             )
     
     def get_all_venues(self, active_only: bool = True) -> List[Venue]:
-        """
-        Get all venues.
-        
-        Args:
-            active_only: If True, return only active venues
-            
-        Returns:
-            List[Venue]: List of venues
-        """
         try:
             return self.venue_repo.get_all(active_only=active_only)
         except Exception as e:

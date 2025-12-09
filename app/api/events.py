@@ -1,7 +1,3 @@
-"""
-Events API routes for Phase 2: Event Discovery & Browse.
-Handles event listing, search, filtering, and detail viewing.
-"""
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional

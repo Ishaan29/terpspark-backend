@@ -1,14 +1,9 @@
-"""
-Pydantic schemas for event requests and responses.
-Provides data validation and serialization for event endpoints.
-"""
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import date, time
 
 
 class EventBase(BaseModel):
-    """Base event schema with common fields."""
     title: str = Field(..., min_length=5, max_length=200)
     description: str = Field(..., min_length=50)
     categoryId: str
@@ -20,14 +15,12 @@ class EventBase(BaseModel):
 
 
 class EventCreate(EventBase):
-    """Schema for creating a new event."""
     date: str = Field(..., description="Event date in YYYY-MM-DD format")
     startTime: str = Field(..., description="Start time in HH:MM format (24-hour)")
     endTime: str = Field(..., description="End time in HH:MM format (24-hour)")
     
     @validator('date')
     def validate_date(cls, v):
-        """Validate date format and ensure it's in the future."""
         try:
             event_date = date.fromisoformat(v)
             if event_date < date.today():
@@ -40,7 +33,6 @@ class EventCreate(EventBase):
     
     @validator('startTime', 'endTime')
     def validate_time(cls, v):
-        """Validate time format."""
         try:
             time.fromisoformat(v)
             return v
@@ -49,7 +41,6 @@ class EventCreate(EventBase):
     
     @validator('endTime')
     def validate_end_time(cls, v, values):
-        """Ensure end time is after start time."""
         if 'startTime' in values:
             start = time.fromisoformat(values['startTime'])
             end = time.fromisoformat(v)
@@ -59,12 +50,23 @@ class EventCreate(EventBase):
 
 
 class EventUpdate(EventCreate):
-    """Schema for updating an event - uses same validation as EventCreate plus status."""
     status: Optional[str] = Field(None, description="Event status (draft, pending, published, cancelled)")
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=5, max_length=200)
+    description: Optional[str] = Field(None, min_length=50)
+    categoryId: Optional[str] = None
+    date: Optional[str] = None
+    startTime: Optional[str] = None
+    endTime: Optional[str] = None
+    venue: Optional[str] = Field(None, min_length=2, max_length=200)
+    location: Optional[str] = Field(None, min_length=5, max_length=500)
+    capacity: Optional[int] = Field(None, ge=1, le=5000)
+    imageUrl: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = None
 
 
 class OrganizerInfo(BaseModel):
-    """Organizer information in event response."""
     id: str
     name: str
     email: str
@@ -72,7 +74,6 @@ class OrganizerInfo(BaseModel):
 
 
 class CategoryInfo(BaseModel):
-    """Category information in event response."""
     id: str
     name: str
     slug: str
@@ -80,7 +81,6 @@ class CategoryInfo(BaseModel):
 
 
 class EventResponse(BaseModel):
-    """Schema for event data in responses."""
     id: str
     title: str
     description: str
@@ -111,7 +111,6 @@ class EventResponse(BaseModel):
 
 
 class EventListResponse(BaseModel):
-    """Schema for event with basic info in list."""
     id: str
     title: str
     description: str
@@ -137,7 +136,6 @@ class EventListResponse(BaseModel):
 
 
 class PaginationInfo(BaseModel):
-    """Pagination information."""
     currentPage: int
     totalPages: int
     totalItems: int
@@ -145,20 +143,17 @@ class PaginationInfo(BaseModel):
 
 
 class EventsListResponse(BaseModel):
-    """Schema for paginated list of events response."""
     success: bool = True
     events: List[EventListResponse]
     pagination: PaginationInfo
 
 
 class EventDetailResponse(BaseModel):
-    """Schema for single event detail response."""
     success: bool = True
     event: EventResponse
 
 
 class EventStatistics(BaseModel):
-    """Statistics for organizer events."""
     total: int
     draft: int = 0
     pending: int = 0
@@ -167,7 +162,6 @@ class EventStatistics(BaseModel):
 
 
 class OrganizerEventsResponse(BaseModel):
-    """Schema for organizer's events response."""
     success: bool = True
     events: List[EventResponse]
     statistics: EventStatistics

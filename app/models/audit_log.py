@@ -1,7 +1,3 @@
-"""
-Audit Log database model.
-Tracks all important actions in the system for security and compliance.
-"""
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Text, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship

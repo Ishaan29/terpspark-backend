@@ -1,9 +1,3 @@
-"""
-Admin API routes.
-Handles admin operations: approvals, reference data management, analytics.
-Phase 5: Admin Console & Management
-"""
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy.orm import Session
 from typing import Optional, List
 import csv
@@ -38,11 +32,6 @@ from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRespons
 from app.schemas.venue import VenueCreate, VenueUpdate, VenueResponse, VenuesResponse
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
-
-
-# ============================================================================
-# 1. ORGANIZER APPROVALS
-# ============================================================================
 
 @router.get(
     "/approvals/organizers",
@@ -291,10 +280,6 @@ async def reject_event(
     return AdminActionResponse(message="Event rejected")
 
 
-# ============================================================================
-# 3. CATEGORY MANAGEMENT
-# ============================================================================
-
 @router.get(
     "/categories",
     response_model=CategoriesResponse,
@@ -449,10 +434,6 @@ async def toggle_category(
     action = "retired" if not category.is_active else "reactivated"
     return AdminActionResponse(message=f"Category {action} successfully")
 
-
-# ============================================================================
-# 4. VENUE MANAGEMENT
-# ============================================================================
 
 @router.get(
     "/venues",
@@ -768,9 +749,6 @@ async def export_audit_logs(
     )
 
 
-# ============================================================================
-# 6. ANALYTICS & METRICS
-# ============================================================================
 
 @router.get(
     "/analytics",

@@ -1,7 +1,3 @@
-"""
-Organizer Approval Request database model.
-Represents requests from users to become organizers.
-"""
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -10,33 +6,27 @@ from app.core.database import Base
 
 
 class ApprovalStatus(str, enum.Enum):
-    """Enum for approval request status."""
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
 
 
 class OrganizerApprovalRequest(Base):
-    """
-    Organizer Approval Request model.
-    Tracks requests from users who want to become event organizers.
-    """
     __tablename__ = "organizer_approval_requests"
     
-    # Primary Key
     id = Column(String(36), primary_key=True, index=True)
     
-    # Foreign Key
+    
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
-    # Request Information
+    
     reason = Column(
         Text,
         nullable=False,
         comment="Reason why user wants to be an organizer"
     )
     
-    # Status
+    
     status = Column(
         SQLEnum(ApprovalStatus),
         nullable=False,
@@ -44,7 +34,7 @@ class OrganizerApprovalRequest(Base):
         index=True
     )
     
-    # Review Information
+    
     reviewed_by = Column(
         String(36),
         ForeignKey("users.id"),
@@ -53,7 +43,7 @@ class OrganizerApprovalRequest(Base):
     )
     notes = Column(Text, nullable=True, comment="Admin notes or feedback")
     
-    # Timestamps
+    
     requested_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -61,7 +51,7 @@ class OrganizerApprovalRequest(Base):
     )
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Relationships
+    
     user = relationship("User", foreign_keys=[user_id], backref="approval_requests")
     reviewer = relationship("User", foreign_keys=[reviewed_by], backref="reviewed_approvals")
     

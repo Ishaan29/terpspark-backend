@@ -908,7 +908,6 @@ async def get_event_waitlist(
         )
 
 
-# Health check endpoint
 @router.get("/health")
 async def health_check():
     """

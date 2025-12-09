@@ -1,7 +1,3 @@
-"""
-Registration database model.
-Represents event registrations by students, including guest information.
-"""
 from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum, JSON, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -10,32 +6,26 @@ from app.core.database import Base
 
 
 class CheckInStatus(str, enum.Enum):
-    """Enum for check-in status."""
     NOT_CHECKED_IN = "not_checked_in"
     CHECKED_IN = "checked_in"
 
 
-class RegistrationStatus(str, enum.Enum):
-    """Enum for registration status."""
+class RegistrationStatus(str, enum.Enum):    
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
 
 
 class Registration(Base):
-    """
-    Registration model representing user registrations for events.
-    Includes support for guests and QR code tickets.
-    """
     __tablename__ = "registrations"
     
-    # Primary Key
+    
     id = Column(String(36), primary_key=True, index=True)
     
-    # Foreign Keys
+    
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     event_id = Column(String(36), ForeignKey("events.id"), nullable=False, index=True)
     
-    # Status
+    
     status = Column(
         SQLEnum(RegistrationStatus),
         nullable=False,
@@ -43,7 +33,7 @@ class Registration(Base):
         index=True
     )
     
-    # Ticket Information
+    
     ticket_code = Column(
         String(100),
         nullable=False,
@@ -53,7 +43,7 @@ class Registration(Base):
     )
     qr_code = Column(Text, nullable=True, comment="Base64 encoded QR code or URL")
     
-    # Check-in Management
+    
     check_in_status = Column(
         SQLEnum(CheckInStatus),
         nullable=False,
@@ -61,21 +51,20 @@ class Registration(Base):
     )
     checked_in_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Guest Information - stored as JSON array
-    # Each guest: {"name": "string", "email": "string"}
+    
     guests = Column(
         JSON,
         nullable=True,
         comment="Array of guest objects with name and email"
     )
     
-    # Sessions - for multi-session events (Phase 4+)
+    
     sessions = Column(JSON, nullable=True, comment="Array of session IDs")
     
-    # Notification
+    
     reminder_sent = Column(Boolean, nullable=False, default=False)
     
-    # Timestamps
+    
     registered_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -83,7 +72,6 @@ class Registration(Base):
     )
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Relationships
     user = relationship("User", backref="registrations")
     event = relationship("Event", back_populates="registrations")
     

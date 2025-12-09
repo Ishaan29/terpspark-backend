@@ -1,7 +1,3 @@
-"""
-Event repository for database operations.
-Handles all database interactions for Event model.
-"""
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
@@ -12,28 +8,11 @@ import uuid
 
 
 class EventRepository:
-    """Repository for Event database operations."""
     
     def __init__(self, db: Session):
-        """
-        Initialize repository with database session.
-        
-        Args:
-            db: SQLAlchemy database session
-        """
         self.db = db
     
     def get_by_id(self, event_id: str, include_relations: bool = True) -> Optional[Event]:
-        """
-        Get event by ID.
-        
-        Args:
-            event_id: Event ID
-            include_relations: Whether to eagerly load related objects
-            
-        Returns:
-            Optional[Event]: Event if found, None otherwise
-        """
         query = self.db.query(Event).filter(Event.id == event_id)
         if include_relations:
             query = query.options(
@@ -54,26 +33,8 @@ class EventRepository:
         page: int = 1,
         limit: int = 20
     ) -> Tuple[List[Event], int]:
-        """
-        Get paginated list of published events with filters.
-        
-        Args:
-            search: Search term for title, description, tags, venue
-            category_id: Filter by category ID
-            start_date: Filter events after this date
-            end_date: Filter events before this date
-            organizer_id: Filter by organizer ID
-            availability: If True, only show events with available spots
-            sort_by: Sort field ('date', 'title', 'popularity')
-            page: Page number (1-indexed)
-            limit: Items per page
-            
-        Returns:
-            Tuple[List[Event], int]: List of events and total count
-        """
         query = self.db.query(Event).filter(Event.status == EventStatus.PUBLISHED)
         
-        # Apply filters
         if search:
             search_pattern = f"%{search}%"
             query = query.filter(
@@ -100,18 +61,15 @@ class EventRepository:
         if availability:
             query = query.filter(Event.registered_count < Event.capacity)
         
-        # Get total count before pagination
         total_count = query.count()
         
-        # Apply sorting
         if sort_by == "title":
             query = query.order_by(Event.title)
         elif sort_by == "popularity":
             query = query.order_by(Event.registered_count.desc())
-        else:  # Default: date
+        else:  
             query = query.order_by(Event.date, Event.start_time)
         
-        # Apply pagination
         offset = (page - 1) * limit
         query = query.options(
             joinedload(Event.category),
@@ -126,16 +84,6 @@ class EventRepository:
         organizer_id: str,
         status: Optional[EventStatus] = None
     ) -> List[Event]:
-        """
-        Get all events created by an organizer.
-        
-        Args:
-            organizer_id: Organizer user ID
-            status: Filter by event status (optional)
-            
-        Returns:
-            List[Event]: List of events
-        """
         query = self.db.query(Event).filter(Event.organizer_id == organizer_id)
         
         if status:
@@ -159,32 +107,10 @@ class EventRepository:
         tags: Optional[List[str]] = None,
         status: EventStatus = EventStatus.PENDING
     ) -> Event:
-        """
-        Create a new event.
-        
-        Args:
-            title: Event title
-            description: Event description
-            category_id: Category ID
-            organizer_id: Organizer user ID
-            event_date: Event date
-            start_time: Start time (HH:MM)
-            end_time: End time (HH:MM)
-            venue: Venue name
-            location: Detailed location
-            capacity: Maximum capacity
-            image_url: Image URL (optional)
-            tags: List of tags (optional)
-            status: Event status (default: PENDING)
-            
-        Returns:
-            Event: Created event
-        """
         from datetime import time
         
         event_id = str(uuid.uuid4())
         
-        # Parse time strings
         start_hour, start_minute = map(int, start_time.split(':'))
         end_hour, end_minute = map(int, end_time.split(':'))
         
@@ -218,16 +144,6 @@ class EventRepository:
             raise
     
     def update(self, event: Event, **kwargs) -> Event:
-        """
-        Update event fields.
-        
-        Args:
-            event: Event to update
-            **kwargs: Fields to update
-            
-        Returns:
-            Event: Updated event
-        """
         from datetime import time
         
         for key, value in kwargs.items():
@@ -243,15 +159,6 @@ class EventRepository:
         return event
     
     def publish(self, event: Event) -> Event:
-        """
-        Publish an event.
-        
-        Args:
-            event: Event to publish
-            
-        Returns:
-            Event: Published event
-        """
         event.status = EventStatus.PUBLISHED
         event.published_at = datetime.utcnow()
         self.db.commit()
@@ -259,15 +166,6 @@ class EventRepository:
         return event
     
     def cancel(self, event: Event) -> Event:
-        """
-        Cancel an event.
-        
-        Args:
-            event: Event to cancel
-            
-        Returns:
-            Event: Cancelled event
-        """
         event.status = EventStatus.CANCELLED
         event.cancelled_at = datetime.utcnow()
         self.db.commit()
@@ -275,76 +173,30 @@ class EventRepository:
         return event
     
     def increment_registered_count(self, event: Event, count: int = 1) -> Event:
-        """
-        Increment registered count.
-        
-        Args:
-            event: Event to update
-            count: Number to increment by
-            
-        Returns:
-            Event: Updated event
-        """
         event.registered_count += count
         self.db.commit()
         self.db.refresh(event)
         return event
     
     def decrement_registered_count(self, event: Event, count: int = 1) -> Event:
-        """
-        Decrement registered count.
-        
-        Args:
-            event: Event to update
-            count: Number to decrement by
-            
-        Returns:
-            Event: Updated event
-        """
         event.registered_count = max(0, event.registered_count - count)
         self.db.commit()
         self.db.refresh(event)
         return event
     
     def increment_waitlist_count(self, event: Event, count: int = 1) -> Event:
-        """
-        Increment waitlist count.
-        
-        Args:
-            event: Event to update
-            count: Number to increment by
-            
-        Returns:
-            Event: Updated event
-        """
         event.waitlist_count += count
         self.db.commit()
         self.db.refresh(event)
         return event
     
     def decrement_waitlist_count(self, event: Event, count: int = 1) -> Event:
-        """
-        Decrement waitlist count.
-        
-        Args:
-            event: Event to update
-            count: Number to decrement by
-            
-        Returns:
-            Event: Updated event
-        """
         event.waitlist_count = max(0, event.waitlist_count - count)
         self.db.commit()
         self.db.refresh(event)
         return event
     
     def get_pending_events(self) -> List[Event]:
-        """
-        Get all events pending approval.
-        
-        Returns:
-            List[Event]: List of pending events
-        """
         return self.db.query(Event).filter(
             Event.status == EventStatus.PENDING
         ).options(
@@ -353,15 +205,6 @@ class EventRepository:
         ).order_by(Event.created_at).all()
     
     def get_organizer_statistics(self, organizer_id: str) -> dict:
-        """
-        Get statistics for an organizer's events.
-        
-        Args:
-            organizer_id: Organizer user ID
-            
-        Returns:
-            dict: Statistics dictionary
-        """
         from sqlalchemy import func
         
         total = self.db.query(func.count(Event.id)).filter(

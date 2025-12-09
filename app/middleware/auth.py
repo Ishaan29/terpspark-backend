@@ -1,7 +1,3 @@
-"""
-Authentication and authorization dependencies.
-Provides RBAC (Role-Based Access Control) for endpoints.
-"""
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -11,7 +7,6 @@ from app.core.security import decode_token
 from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
 
-# HTTP Bearer token scheme
 security = HTTPBearer()
 
 
@@ -32,10 +27,10 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
-    # Extract token
+    
     token = credentials.credentials
     
-    # Decode token
+    
     payload = decode_token(token)
     if not payload:
         raise HTTPException(
@@ -44,7 +39,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Extract user ID
+    
     user_id: str = payload.get("sub")
     if not user_id:
         raise HTTPException(
@@ -53,7 +48,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Get user from database
+    
     user_repo = UserRepository(db)
     user = user_repo.get_by_id(user_id)
     
@@ -64,7 +59,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Check if user is active
+    
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -140,7 +135,7 @@ def require_approved_organizer():
     return approval_checker
 
 
-# Convenient role-specific dependencies
+
 async def require_student(
     current_user: User = Depends(require_role(UserRole.STUDENT, UserRole.ORGANIZER, UserRole.ADMIN))
 ) -> User:
@@ -167,7 +162,7 @@ async def require_admin(
     return current_user
 
 
-# Optional authentication (for endpoints that work with or without auth)
+
 async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)

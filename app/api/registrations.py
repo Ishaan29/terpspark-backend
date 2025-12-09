@@ -1,7 +1,3 @@
-"""
-Registration API routes for Phase 3: Student Registration Flow.
-Handles event registration, cancellation, and waitlist management.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -17,7 +13,6 @@ from app.schemas.registration import (
 )
 from app.schemas.auth import ErrorResponse
 
-# Create router with prefix and tags
 router = APIRouter(prefix="/api/registrations", tags=["Registrations"])
 
 

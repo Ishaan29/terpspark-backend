@@ -1,8 +1,3 @@
-"""
-Organizer service for business logic.
-Handles event management, attendee management, and communication for organizers.
-Phase 4: Organizer Management
-"""
 from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -30,15 +25,8 @@ from app.utils.email_service import EmailService
 
 
 class OrganizerService:
-    """Service for organizer operations."""
     
     def __init__(self, db: Session):
-        """
-        Initialize service with database session.
-
-        Args:
-            db: SQLAlchemy database session
-        """
         self.db = db
         self.event_repo = EventRepository(db)
         self.registration_repo = RegistrationRepository(db)
@@ -49,17 +37,8 @@ class OrganizerService:
         self.email_service = EmailService(db)
     
     def _verify_organizer(self, user: User) -> None:
-        """
-        Verify that user is an approved organizer or admin.
-        
-        Args:
-            user: Current user
-            
-        Raises:
-            HTTPException: If user is not an approved organizer
-        """
         if user.role == UserRole.ADMIN:
-            return  # Admins can do anything
+            return
         
         if user.role != UserRole.ORGANIZER:
             raise HTTPException(
@@ -74,18 +53,8 @@ class OrganizerService:
             )
     
     def _verify_event_ownership(self, event: Event, user: User) -> None:
-        """
-        Verify that user owns the event or is admin.
-        
-        Args:
-            event: Event to check
-            user: Current user
-            
-        Raises:
-            HTTPException: If user doesn't own the event
-        """
         if user.role == UserRole.ADMIN:
-            return  # Admins can manage any event
+            return
         
         if event.organizer_id != user.id:
             raise HTTPException(
@@ -100,24 +69,8 @@ class OrganizerService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Event:
-        """
-        Create a new event.
-        
-        Args:
-            event_data: Event creation data
-            organizer: Organizer creating the event
-            ip_address: Request IP address
-            user_agent: Request user agent
-            
-        Returns:
-            Event: Created event
-            
-        Raises:
-            HTTPException: If validation fails
-        """
         self._verify_organizer(organizer)
         
-        # Validate category exists
         category = self.category_repo.get_by_id(event_data.categoryId)
         if not category:
             raise HTTPException(
@@ -131,7 +84,6 @@ class OrganizerService:
                 detail="Cannot create event with inactive category"
             )
         
-        # Parse date
         try:
             event_date = date.fromisoformat(event_data.date)
         except ValueError:
@@ -139,6 +91,7 @@ class OrganizerService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid date format. Use YYYY-MM-DD"
             )
+<<<<<<< Updated upstream
 
         # Check for venue conflicts
         conflicting_event = self.event_repo.check_venue_conflict(
@@ -155,6 +108,9 @@ class OrganizerService:
             )
 
         # Create event
+=======
+        
+>>>>>>> Stashed changes
         try:
             event = self.event_repo.create(
                 title=event_data.title,
@@ -172,7 +128,6 @@ class OrganizerService:
                 status=EventStatus.PENDING  # Events start as pending for admin approval
             )
             
-            # Log audit
             self.audit_repo.create(
                 action=AuditAction.EVENT_CREATED,
                 actor_id=organizer.id,
@@ -199,16 +154,6 @@ class OrganizerService:
         organizer: User,
         status_filter: Optional[EventStatus] = None
     ) -> Tuple[List[Event], Dict[str, int]]:
-        """
-        Get all events for an organizer.
-        
-        Args:
-            organizer: Organizer user
-            status_filter: Filter by event status
-            
-        Returns:
-            Tuple[List[Event], Dict]: List of events and statistics
-        """
         self._verify_organizer(organizer)
         
         events = self.event_repo.get_by_organizer(organizer.id, status=status_filter)
@@ -224,6 +169,7 @@ class OrganizerService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Event:
+<<<<<<< Updated upstream
         """
         Update an event with complete event data.
 
@@ -243,6 +189,10 @@ class OrganizerService:
         self._verify_organizer(organizer)
 
         # Get event
+=======
+        self._verify_organizer(organizer)
+        
+>>>>>>> Stashed changes
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -251,13 +201,18 @@ class OrganizerService:
             )
 
         self._verify_event_ownership(event, organizer)
+<<<<<<< Updated upstream
 
         # Cannot update cancelled events
+=======
+        
+>>>>>>> Stashed changes
         if event.status == EventStatus.CANCELLED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot update a cancelled event"
             )
+<<<<<<< Updated upstream
 
         # Validate category exists
         category = self.category_repo.get_by_id(event_data.categoryId)
@@ -315,6 +270,27 @@ class OrganizerService:
 
         # Handle status update if provided
         if event_data.status is not None:
+=======
+        
+        update_fields = {}
+        
+        if event_data.title is not None:
+            update_fields['title'] = event_data.title
+        
+        if event_data.description is not None:
+            update_fields['description'] = event_data.description
+        
+        if event_data.categoryId is not None:
+            category = self.category_repo.get_by_id(event_data.categoryId)
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Category with ID '{event_data.categoryId}' not found"
+                )
+            update_fields['category_id'] = event_data.categoryId
+        
+        if event_data.date is not None:
+>>>>>>> Stashed changes
             try:
                 # Validate and convert status string to EventStatus enum
                 new_status = EventStatus(event_data.status.lower())
@@ -342,6 +318,7 @@ class OrganizerService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid status. Must be one of: draft, pending, published, cancelled"
                 )
+<<<<<<< Updated upstream
 
         # Update event
         event = self.event_repo.update(event, **update_fields)
@@ -361,6 +338,52 @@ class OrganizerService:
             user_agent=user_agent
         )
 
+=======
+        
+        if event_data.startTime is not None:
+            update_fields['start_time'] = event_data.startTime
+        
+        if event_data.endTime is not None:
+            update_fields['end_time'] = event_data.endTime
+        
+        if event_data.venue is not None:
+            update_fields['venue'] = event_data.venue
+        
+        if event_data.location is not None:
+            update_fields['location'] = event_data.location
+        
+        if event_data.capacity is not None:
+            if event_data.capacity < event.registered_count:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Cannot reduce capacity below current registered count ({event.registered_count})"
+                )
+            update_fields['capacity'] = event_data.capacity
+        
+        if event_data.imageUrl is not None:
+            update_fields['image_url'] = event_data.imageUrl
+        
+        if event_data.tags is not None:
+            update_fields['tags'] = event_data.tags
+        
+        if update_fields:
+            event = self.event_repo.update(event, **update_fields)
+            
+            self.audit_repo.create(
+                action=AuditAction.EVENT_UPDATED,
+                actor_id=organizer.id,
+                actor_name=organizer.name,
+                actor_role=organizer.role.value,
+                target_type=TargetType.EVENT,
+                target_id=event.id,
+                target_name=event.title,
+                details=f"Event '{event.title}' updated",
+                metadata={"updated_fields": list(update_fields.keys())},
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        
+>>>>>>> Stashed changes
         return event
     
     def cancel_event(
@@ -705,25 +728,8 @@ class OrganizerService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> Registration:
-        """
-        Check-in an attendee.
-        
-        Args:
-            event_id: Event ID
-            registration_id: Registration ID
-            organizer: Current user
-            ip_address: Request IP address
-            user_agent: Request user agent
-            
-        Returns:
-            Registration: Updated registration
-            
-        Raises:
-            HTTPException: If registration not found or invalid
-        """
         self._verify_organizer(organizer)
         
-        # Get event
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -733,7 +739,6 @@ class OrganizerService:
         
         self._verify_event_ownership(event, organizer)
         
-        # Get registration
         registration = self.registration_repo.get_by_id(registration_id)
         if not registration:
             raise HTTPException(
@@ -741,31 +746,26 @@ class OrganizerService:
                 detail="Registration not found"
             )
         
-        # Verify registration is for this event
         if registration.event_id != event_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Registration does not belong to this event"
             )
         
-        # Verify registration is confirmed
         if registration.status != RegistrationStatus.CONFIRMED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot check-in a cancelled registration"
             )
         
-        # Check if already checked in
         if registration.check_in_status == CheckInStatus.CHECKED_IN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Attendee is already checked in"
             )
         
-        # Check in
         registration = self.registration_repo.check_in(registration)
         
-        # Log audit
         self.audit_repo.create(
             action=AuditAction.ATTENDEE_CHECKED_IN,
             actor_id=organizer.id,
@@ -793,27 +793,9 @@ class OrganizerService:
         organizer: User,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Send announcement to all registered attendees.
-        
-        Args:
-            event_id: Event ID
-            subject: Announcement subject
-            message: Announcement message
-            organizer: Current user
-            ip_address: Request IP address
-            user_agent: Request user agent
-            
-        Returns:
-            Dict: Result with recipient count
-            
-        Raises:
-            HTTPException: If event not found
-        """
+    ) -> Dict[str, Any]:            
         self._verify_organizer(organizer)
         
-        # Get event
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -823,15 +805,12 @@ class OrganizerService:
         
         self._verify_event_ownership(event, organizer)
         
-        # Get registrations
         registrations = self.registration_repo.get_event_registrations(
             event_id=event_id,
             status=RegistrationStatus.CONFIRMED
         )
         
-        # Check rate limiting: Max 10 announcements per day per organizer
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        # Reuse EVENT_UPDATED as a proxy action for announcements (ANNOUNCEMENT_SENT not in DB enum)
         today_announcements = self.audit_repo.count_by_action_and_actor(
             action=AuditAction.EVENT_UPDATED,
             actor_id=organizer.id,
@@ -844,13 +823,11 @@ class OrganizerService:
                 detail="Daily announcement limit reached (10 per day). Please try again tomorrow."
             )
 
-        # Count recipients (including guests with emails)
         recipient_count = len(registrations)
         for reg in registrations:
             if reg.guests:
                 recipient_count += len([g for g in reg.guests if g.get("email")])
 
-        # Send emails to all registered attendees
         sent_count = 0
         failed_count = 0
 
@@ -872,7 +849,6 @@ class OrganizerService:
 
         logger.info(f"Sent announcement to {sent_count}/{recipient_count} attendees for event {event.id}")
 
-        # Log audit using EVENT_UPDATED as proxy for announcement
         self.audit_repo.create(
             action=AuditAction.EVENT_UPDATED,
             actor_id=organizer.id,
@@ -903,22 +879,8 @@ class OrganizerService:
         event_id: str,
         organizer: User
     ) -> List[Dict]:
-        """
-        Get waitlist for an event.
-        
-        Args:
-            event_id: Event ID
-            organizer: Current user
-            
-        Returns:
-            List[Dict]: List of waitlist entries
-            
-        Raises:
-            HTTPException: If event not found
-        """
         self._verify_organizer(organizer)
         
-        # Get event
         event = self.event_repo.get_by_id(event_id)
         if not event:
             raise HTTPException(
@@ -928,10 +890,8 @@ class OrganizerService:
         
         self._verify_event_ownership(event, organizer)
         
-        # Get waitlist
         waitlist = self.waitlist_repo.get_event_waitlist(event_id)
         
-        # Build response
         waitlist_entries = []
         for entry in waitlist:
             waitlist_entries.append({
